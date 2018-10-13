@@ -1,0 +1,37 @@
+---
+title: "Exercise Extract"
+author: "林茂廷"
+date: "10/13/2018"
+output: html_document
+---
+
+給定Rmd練習檔名，移除r chunk中有答案的部份，形成學生作業練習檔。
+
+```{r}
+# 檔名
+fileName <- "Exercise2-ans.Rmd"
+fileContent <- readLines(fileName)
+library(stringr)
+library(dplyr)
+fileContent %>% str_which(fixed("```{r ans")) -> ansStartLoc
+
+# 選出要清空的答案內容
+ansEndLoc<-c()
+nLines<-length(fileContent)
+for(i in ansStartLoc){
+  #i<-ansStartLoc[1]
+  fileContent[i:nLines] %>% str_which(fixed("```")) -> Out
+  ansEndLoc_i <- Out[2]+i-1
+  ansEndLoc<-c(ansEndLoc,ansEndLoc_i)
+}
+cbind(c(1,ansEndLoc),c(ansStartLoc,nLines)) -> toKeep
+str_c(toKeep[,1],toKeep[,2],sep=":") %>%
+  str_c(collapse = ",") -> toKeepIntervals
+eval(parse(text=paste0("toKeepLines<-c(",toKeepIntervals,")")))
+
+fileContentToKeep <- fileContent[toKeepLines]
+fileNameOut<-str_split_fixed(fileName,fixed("-"),n=2)[,1]
+fileNameOut <- paste0(fileNameOut,".Rmd") 
+writeLines(fileContentToKeep,fileNameOut)
+```
+
