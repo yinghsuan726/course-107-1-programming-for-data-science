@@ -31,7 +31,8 @@ eval(parse(text=paste0("toKeepLines<-c(",toKeepIntervals,")")))
 
 fileContentToKeep <- fileContent[toKeepLines]
 fileNameOut<-str_split_fixed(fileName,fixed("-"),n=2)[,1]
-fileNameOut <- paste0(fileNameOut,".Rmd") 
+dir.create(fileNameOut)
+fileNameOut <- paste0(fileNameOut,"/",fileNameOut,".Rmd") 
 writeLines(fileContentToKeep,fileNameOut)
 ```
 
