@@ -1,0 +1,88 @@
+---
+title: "Exercise-Grading"
+author: "林茂廷"
+date: "10/13/2018"
+output: html_document
+---
+
+## 產生tryCatch學生答案程式檔
+
+```{r}
+studentFile<-"Exercise1-41073859.Rmd"
+dirSet<-"Exercise1"
+studentFilePath<-paste0(dirSet,"/",studentFile)
+
+library(knitr)
+library(stringr)
+library(dplyr)
+
+#readLines(studentFilePath)
+#purl(studentFilePath)
+
+# 檔名
+fileName <- studentFilePath
+fileContent <- readLines(fileName)
+fileContent %>% str_which(fixed("```{r ans")) -> ansStartLoc
+
+# 選出要清空的答案內容
+ansEndLoc<-c()
+nLines<-length(fileContent)
+ansListMake<-c("ans<-list()")
+previousLines<-c()
+ansEndLoc_i<-1
+for(i in ansStartLoc){
+  #i<-ansStartLoc[1]
+  chunkName <- str_split_fixed(fileContent[i],fixed("```{r "),n=2)
+  chunkName <- str_sub(chunkName[,2],end=str_length(chunkName[,2])-1)
+  textContent<-fileContent[ansEndLoc_i:i]
+  previousLines<-c(previousLines,textContent)
+  fileContent[i:nLines] %>% str_which(fixed("```")) -> Out
+  ansEndLoc_i <- Out[2]+i-1
+  codeStartLine<-i+1
+  codeEndLine<-ansEndLoc_i-1
+  
+  ## 取出ans區塊內的程式碼chunkContent（不含上下```標記）
+  chunkContent <- NULL
+  if(codeStartLine <= codeEndLine){
+    chunkContent<-fileContent[codeStartLine:codeEndLine]
+  }
+  
+  ## 程式碼放入tryCatch()以避免error使程式停止
+  edittedChunkContent<-
+    c("tryCatch({",
+    chunkContent,
+    "},",
+    "error=function(e){}",
+    paste0(")->",'ans[["',chunkName,'"]]')
+    )
+  
+  ## 若為第一個ans區塊，則要新增ans list object的宣告
+  if(i==ansStartLoc[1]){
+    edittedChunkContent <- c("ans<-list()",edittedChunkContent)
+  }
+
+  previousLines<-c(previousLines,edittedChunkContent)
+}
+
+## 結束區塊後還有非ans區塊時，貼回用：
+if(ansEndLoc_i<nLines){
+  textContent<-fileContent[ansEndLoc_i:nLines]
+  previousLines<-c(previousLines,textContent)
+}
+
+## 輸出結果到tryCatch/
+dir.create(paste0(dirname(fileName),"/tryCatch"))
+tryCathFilePath<-paste0(dirname(fileName),"/tryCatch/",basename(fileName))
+writeLines(previousLines,tryCathFilePath)
+```
+
+## 對答案
+
+```{r}
+## 執行tryCath/檔案產生學生答案，及基本資料params
+tempR <- tempfile(fileext = ".R")
+purl(tryCathFilePath, output=tempR)
+source(tempR)
+unlink(tempR)
+```
+
