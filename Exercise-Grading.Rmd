@@ -4,85 +4,142 @@ author: "林茂廷"
 date: "10/13/2018"
 output: html_document
 ---
+## 設定批改資料匣名稱
+
+```{r}
+dirSet<-"./Exercise1/ans"
+#dir.create(dirSet)
+```
+
 
 ## 產生tryCatch學生答案程式檔
 
-```{r}
-studentFile<-"Exercise1-41073859.Rmd"
-dirSet<-"Exercise1"
-studentFilePath<-paste0(dirSet,"/",studentFile)
+```{r tryCatchAppending function}
 
 library(knitr)
 library(stringr)
 library(dplyr)
 
-#readLines(studentFilePath)
-#purl(studentFilePath)
-
-# 檔名
-fileName <- studentFilePath
-fileContent <- readLines(fileName)
-fileContent %>% str_which(fixed("```{r ans")) -> ansStartLoc
-
-# 選出要清空的答案內容
-ansEndLoc<-c()
-nLines<-length(fileContent)
-ansListMake<-c("ans<-list()")
-previousLines<-c()
-ansEndLoc_i<-1
-for(i in ansStartLoc){
-  #i<-ansStartLoc[1]
-  chunkName <- str_split_fixed(fileContent[i],fixed("```{r "),n=2)
-  chunkName <- str_sub(chunkName[,2],end=str_length(chunkName[,2])-1)
-  textContent<-fileContent[ansEndLoc_i:i]
-  previousLines<-c(previousLines,textContent)
-  fileContent[i:nLines] %>% str_which(fixed("```")) -> Out
-  ansEndLoc_i <- Out[2]+i-1
-  codeStartLine<-i+1
-  codeEndLine<-ansEndLoc_i-1
+tryCatchAppending<-function(fileName){
   
-  ## 取出ans區塊內的程式碼chunkContent（不含上下```標記）
-  chunkContent <- NULL
-  if(codeStartLine <= codeEndLine){
-    chunkContent<-fileContent[codeStartLine:codeEndLine]
+  fileContent <- readLines(fileName)
+  fileContent %>% str_which(fixed("```{r ans")) -> ansStartLoc
+  
+  # 選出要清空的答案內容
+  ansEndLoc<-c()
+  nLines<-length(fileContent)
+  ansListMake<-c("ans<-list()")
+  previousLines<-c()
+  ansEndLoc_i<-1
+  for(i in ansStartLoc){
+    #i<-ansStartLoc[1]
+    chunkName <- str_split_fixed(fileContent[i],fixed("```{r "),n=2)
+    chunkName <- str_sub(chunkName[,2],end=str_length(chunkName[,2])-1)
+    textContent<-fileContent[ansEndLoc_i:i]
+    previousLines<-c(previousLines,textContent)
+    fileContent[i:nLines] %>% str_which(fixed("```")) -> Out
+    ansEndLoc_i <- Out[2]+i-1
+    codeStartLine<-i+1
+    codeEndLine<-ansEndLoc_i-1
+    
+    ## 取出ans區塊內的程式碼chunkContent（不含上下```標記）
+    chunkContent <- NULL
+    if(codeStartLine <= codeEndLine){
+      chunkContent<-fileContent[codeStartLine:codeEndLine]
+    }
+    
+    ## 程式碼放入tryCatch()以避免error使程式停止
+    edittedChunkContent<-
+      c("tryCatch({",
+      chunkContent,
+      "},",
+      "error=function(e){}",
+      paste0(")->",'ans[["',chunkName,'"]]')
+      )
+    
+    ## 若為第一個ans區塊，則要新增ans list object的宣告
+    if(i==ansStartLoc[1]){
+      edittedChunkContent <- c("ans<-list()",edittedChunkContent)
+    }
+  
+    previousLines<-c(previousLines,edittedChunkContent)
   }
   
-  ## 程式碼放入tryCatch()以避免error使程式停止
-  edittedChunkContent<-
-    c("tryCatch({",
-    chunkContent,
-    "},",
-    "error=function(e){}",
-    paste0(")->",'ans[["',chunkName,'"]]')
-    )
-  
-  ## 若為第一個ans區塊，則要新增ans list object的宣告
-  if(i==ansStartLoc[1]){
-    edittedChunkContent <- c("ans<-list()",edittedChunkContent)
+  ## 結束區塊後還有非ans區塊時，貼回用：
+  if(ansEndLoc_i<nLines){
+    textContent<-fileContent[ansEndLoc_i:nLines]
+    previousLines<-c(previousLines,textContent)
   }
-
-  previousLines<-c(previousLines,edittedChunkContent)
+  
+  
+  ## 輸出結果到tryCatch/
+  dirSetSplit<- str_split(dirname(fileName),"/")[[1]]
+  parentDirSplit<-dirSetSplit[-length(dirSetSplit)]
+  parentDir<-paste0(parentDirSplit,collapse = "/")
+  tryCathDirPath<-paste0(parentDir,"/tryCatch")
+  if(!dir.exists(tryCathDirPath)) dir.create(tryCathDirPath)
+  tryCathFilePath<-paste0(tryCathDirPath,"/tc_",basename(fileName))
+  writeLines(previousLines,tryCathFilePath)
 }
-
-## 結束區塊後還有非ans區塊時，貼回用：
-if(ansEndLoc_i<nLines){
-  textContent<-fileContent[ansEndLoc_i:nLines]
-  previousLines<-c(previousLines,textContent)
-}
-
-## 輸出結果到tryCatch/
-dir.create(paste0(dirname(fileName),"/tryCatch"))
-tryCathFilePath<-paste0(dirname(fileName),"/tryCatch/",basename(fileName))
-writeLines(previousLines,tryCathFilePath)
 ```
 
-## 對答案
+```{r tryCathTest, eval=FALSE}
+studentFile<-"Exercise1-41078392.Rmd"
+ansFile<-"Exercise1-Ans.Rmd"
+studentFilePath<-paste0(dirSet,"/",studentFile)
+ansFilePath<-paste0(dirSet,"/",ansFile)
 
-```{r}
+# 產生學生tryCatch檔
+tryCatchAppending(studentFilePath)
+
+# 產生答案tryCatch檔
+tryCatchAppending(ansFilePath)
+```
+
+```{r create all tryCatch files}
+dirSetSplit<- str_split(dirSet,"/")[[1]]
+parentDirSplit<-dirSetSplit[-length(dirSetSplit)]
+parentDir<-paste0(parentDirSplit,collapse = "/")
+tryCatchPath <- paste0(parentDir,"/tryCatch")
+dir.create(tryCatchPath)
+
+listOfFiles <- dir(dirSet)
+for(i in listOfFiles){
+ tryCatchAppending(paste0(dirSet,"/",i)) 
+}
+```
+
+## 輸出答案
+輸出學生答案及標準答案到`r paste0(dirSet,"/",dirSet,"-ansCollection.Rdata")`
+
+```{r create answerCollection Rdata}
 ## 執行tryCath/檔案產生學生答案，及基本資料params
 tempR <- tempfile(fileext = ".R")
-purl(tryCathFilePath, output=tempR)
-source(tempR)
+
+answerCollection<-list()
+
+listOfFiles <- dir(tryCatchPath)
+for(i in 1:length(listOfFiles)){
+  ithFileName <- listOfFiles[i]
+  ithFilePath <- paste0(tryCatchPath,"/",ithFileName)
+  purl(ithFilePath, output=tempR)
+  source(tempR)
+  ans$name <- params$studentName
+  ans$id <- params$studentID
+  answerCollection[[i]] <- ans
+}
 unlink(tempR)
+save(answerCollection,file=paste0(parentDir,"/",parentDirSplit[length(parentDirSplit)],"-ansCollection.Rdata"))
+```
+
+
+## 批改答案
+
+```{r}
+library(grade)
+any(answerCollection[[1]]$ans11 == answerCollection[[2]]$ans11) 
+any(answerCollection[[1]]$ans12 == answerCollection[[2]]$ans12) 
+any((answerCollection[[1]]$ans2 == answerCollection[[2]]$ans2) 
+)
 ```
 
