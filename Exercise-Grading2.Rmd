@@ -4,8 +4,8 @@ author: "林茂廷"
 date: "10/21/2018"
 output: html_document
 params:
-  dirSet: "./Exercise1/ans"
-  hwcode: "hw1"
+  dirSet: "./Exercise2/ans"
+  hwcode: "hw2"
   gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
   gsfileMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
 ---
@@ -28,8 +28,24 @@ listOfRmds <- list_files_with_exts(params$dirSet,"Rmd")
 listOfRs <- str_replace(listOfRmds,"Rmd","R")
 file.remove(listOfRs)
 
-map(1:length(listOfRmds),
-    function(x) purl(listOfRmds[x],output=listOfRs[x]))
+fileListPurl <- function(ix){
+  tryCatch({
+    purl(listOfRmds[ix],output=listOfRs[ix])
+  },
+    error=function(e){
+      print(paste0(listOfRmds[ix]," has problems."))
+    }
+  )
+}
+
+map(1:length(listOfRmds),fileListPurl) -> purlInfo
+
+# 更新可產生的.R 
+listOfRs <- list_files_with_exts(params$dirSet,"R")
+
+#map(1:length(listOfRmds),
+#    function(x) purl(listOfRmds[x],output=listOfRs[x]))
+
 ```
 
 ```{r chunk name locator}
