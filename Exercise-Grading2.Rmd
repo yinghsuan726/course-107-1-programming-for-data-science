@@ -46,10 +46,17 @@ codeChunkName <- function(codeNameLine){
 ```{r tryCatch appending function}
 appendTryCatch <- function(.x){
   # .x  the path file to append tryCatch()
-  
+  ##.x <- listOfRs[1]
   ## 取得每個chunk名稱
   originContent <- readLines(.x)
-nLines<-length(originContent)
+  
+  ## remove setup chunk
+  originContent %>% str_which("opts_chunk") -> setupLines
+  if(length(setupLines)>0){
+    originContent <- originContent[-setupLines]
+  }
+
+  nLines<-length(originContent)
   originContent %>% str_which("## ----") -> chunkStartLocs
   lapply(originContent[chunkStartLocs],
         codeChunkName) -> chunkNameList #取得每個chunk的名稱
