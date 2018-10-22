@@ -1,13 +1,21 @@
 ---
-title: "Exercise-Grading"
+title: "批改作業並上傳GS"
 author: "林茂廷"
 date: "10/13/2018"
 output: html_document
+params:
+  dirSet: "./Exercise1/ans"
+  hwcode: "hw1"
+  gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
 ---
 ## 設定批改資料匣名稱
 
 ```{r}
-dirSet<-"./Exercise1/ans"
+library(googlesheets)
+library(googledrive)
+dirSet<-params$dirSet
+gsCorrected<-gs_key(params$gskey)
+wsName<-params$hwcode
 #dir.create(dirSet)
 ```
 
@@ -120,6 +128,7 @@ answerCollection<-list()
 
 listOfFiles <- dir(tryCatchPath)
 for(i in 1:length(listOfFiles)){
+  #i<-1
   ithFileName <- listOfFiles[i]
   ithFilePath <- paste0(tryCatchPath,"/",ithFileName)
   purl(ithFilePath, output=tempR)
@@ -132,14 +141,57 @@ unlink(tempR)
 save(answerCollection,file=paste0(parentDir,"/",parentDirSplit[length(parentDirSplit)],"-ansCollection.Rdata"))
 ```
 
-
 ## 批改答案
 
-```{r}
+<!--
+```{r, eval=FALSE}
 library(grade)
 any(answerCollection[[1]]$ans11 == answerCollection[[2]]$ans11) 
 any(answerCollection[[1]]$ans12 == answerCollection[[2]]$ans12) 
 any((answerCollection[[1]]$ans2 == answerCollection[[2]]$ans2) 
 )
+```
+
+-->
+
+```{r}
+upperListOfFiles <- toupper(listOfFiles)
+ansLoc<-str_which(upperListOfFiles,"ANS")
+studentAnswers <- answerCollection[-ansLoc]
+correctAnswers <- answerCollection[[ansLoc]]
+correctAnswers %>% names -> ansNames
+ansNames[1:(length(ansNames)-2)] -> ansNames
+library(purrr)
+results<-c()
+for(i in 1:length(studentAnswers)){
+  # 對答案
+  #i<-1
+  result_i <- map2_int(
+            studentAnswers[[i]][ansNames],
+            correctAnswers[ansNames],
+            identical)
+  newResult<-c(
+    studentAnswers[[i]]$name,studentAnswers[[i]]$id,
+    result_i
+  )
+  results <- rbind(results, newResult)
+}
+
+#result_iLength <- length(result_i)
+#results <- results[,1:result_iLength]
+colnames(results)[1:2] <- c("姓名","學號")
+
+# 
+if(wsName %in% gs_ws_ls(gsCorrected)){
+  gs_edit_cells(gsCorrected,ws=wsName,
+                input=results, col_names = TRUE,
+                anchor="A1")
+  
+} else {
+  gs_ws_new(gsCorrected,ws=wsName,
+            input=results, col_names = TRUE,
+            anchor="A1")  
+}
+
 ```
 
