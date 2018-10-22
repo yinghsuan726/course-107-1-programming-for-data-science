@@ -7,6 +7,7 @@ params:
   dirSet: "./Exercise1/ans"
   hwcode: "hw1"
   gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
+  gsfileMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
 ---
 ## 設定批改資料匣名稱
 
@@ -15,6 +16,7 @@ library(googlesheets)
 library(googledrive)
 dirSet<-params$dirSet
 gsCorrected<-gs_key(params$gskey)
+gsMapping<-gs_key(params$gsfileMapping)
 wsName<-params$hwcode
 #dir.create(dirSet)
 ```
