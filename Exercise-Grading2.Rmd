@@ -8,6 +8,7 @@ params:
   hwcode: "hw2"
   gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
   gsfileMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
+  gsPublicKey: "1NespAnPgIdVqtSOntojQpBhoJWbCDN4cnSpqcShc9O0"
 ---
 
 ```{r setup, include=FALSE}
@@ -20,13 +21,13 @@ library(knitr)
 library(googlesheets)
 gsCorrected<-gs_key(params$gskey)
 gsMapping<-gs_key(params$gsfileMapping)
+gsPublic<-gs_key(params$gsPublicKey)
 wsName<-params$hwcode
 ```
 
 ```{r convert Rmd to R}
 listOfRmds <- list_files_with_exts(params$dirSet,"Rmd")
 listOfRs <- str_replace(listOfRmds,"Rmd","R")
-file.remove(listOfRs)
 
 fileListPurl <- function(ix){
   tryCatch({
@@ -182,15 +183,28 @@ mergedResults %>% mutate(
 ```
 
 ```{r}
+publicResults <-
+  mergedResults %>% select(
+    -姓名
+  )
 if(wsName %in% gs_ws_ls(gsCorrected)){
   gs_edit_cells(gsCorrected,ws=wsName,
                 input=mergedResults, col_names = TRUE,
+                anchor="A1")
+  gs_edit_cells(gsPublic,ws=wsName,
+                input=publicResults, col_names = TRUE,
                 anchor="A1")
   
 } else {
   gs_ws_new(gsCorrected,ws=wsName,
             input=mergedResults, col_names = TRUE,
             anchor="A1")  
+  gs_ws_new(gsPublic,ws=wsName,
+              input=publicResults, col_names = TRUE,
+              anchor="A1")
+
 }
+
+file.remove(listOfRs)
 ```
 
