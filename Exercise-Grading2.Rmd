@@ -25,6 +25,10 @@ gsPublic<-gs_key(params$gsPublicKey)
 wsName<-params$hwcode
 ```
 
+# Convert Rmd to R
+
+**purlInfo** shows if a file fails to be purled. 
+
 ```{r convert Rmd to R}
 listOfRmds <- list_files_with_exts(params$dirSet,"Rmd")
 listOfRs <- str_replace(listOfRmds,"Rmd","R")
@@ -137,6 +141,10 @@ for(i in 1:length(listOfRs)){
     ansCollection[[i]]<-"Cannot process"
     }
   )->responseCollection[[i]] 
+  
+  # 清空name id以免下一個學生是NULL而冠上了前個學生資訊
+  params$studentID <- "NA"
+  params$studentName <- "NA"
 }
 ```
 
@@ -146,6 +154,7 @@ for(i in 1:length(listOfRs)){
 upperListOfFiles <- toupper(listOfRs)
 ansLoc<-str_which(upperListOfFiles,"ANS.R")
 studentAnswers <- ansCollection[-ansLoc]
+studentListOfRs <- listOfRs[-ansLoc]
 correctAnswers <- ansCollection[[ansLoc]]
 correctAnswers %>% names -> ansNames
 ansNames[1:(length(ansNames)-2)] -> ansNames
@@ -158,43 +167,41 @@ for(i in 1:length(studentAnswers)){
             studentAnswers[[i]][ansNames],
             correctAnswers[ansNames],
             identical)
-  newResult<-c(
-    studentAnswers[[i]]$name,studentAnswers[[i]]$id,
-    result_i
-  )
+  newResult<-result_i
+  
   results <- rbind(results, newResult)
 }
 
-#result_iLength <- length(result_i)
-#results <- results[,1:result_iLength]
-colnames(results)[1:2] <- c("姓名","學號")
 results %>% as.data.frame() -> results
-results$學號 %>% as.character %>% as.integer -> results$學號
+studentAnswers %>% map_chr(~.$name) -> results$姓名
+studentAnswers %>% map_chr(~.$id) -> results$學號
+results$檔名 <- studentListOfRs
 ```
 
 ```{r upload result to GS}
 gsMapping %>% gs_read(ws=wsName) -> fileMapping
 
 fileMapping %>% select(姓名,學號) %>%
+  mutate(學號=as.character(學號)) %>%
   left_join(results %>% select(-姓名),by=c("學號")) -> mergedResults
 
 mergedResults %>% mutate(
   上傳檔正常=(學號 %in% results$學號)) -> mergedResults
 ```
 
-```{r}
+```{r, eval=T}
 publicResults <-
   mergedResults %>% select(
-    -姓名
+    -姓名,-檔名
   )
+  
 if(wsName %in% gs_ws_ls(gsCorrected)){
   gs_edit_cells(gsCorrected,ws=wsName,
                 input=mergedResults, col_names = TRUE,
                 anchor="A1")
   gs_edit_cells(gsPublic,ws=wsName,
                 input=publicResults, col_names = TRUE,
-                anchor="A1")
-  
+                anchor="A1")  
 } else {
   gs_ws_new(gsCorrected,ws=wsName,
             input=mergedResults, col_names = TRUE,
