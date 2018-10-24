@@ -1,0 +1,81 @@
+---
+params:
+  studentID: "你的學號"
+  studentName: "你的名字"
+---
+存檔時，請用你的學號當延伸檔名。例如：若你的學號為41078392，則請`File->Save As...`存成Exercise3-41078392.Rmd。
+
+## 1 數位學苑通知閱讀習慣
+請先連到[資料科學程設（一）練習資料Google Sheets](https://docs.google.com/spreadsheets/d/1fWdfu5yvFKtl8bUfXp6bSWdgTCxHiXPAnSW-JSk-IWc/edit#gid=2059291896)；接著在該表單網頁選**File**->**Add to My Drive**，然後執行以下程式：
+
+```{r}
+library(googlesheets)
+#gs_auth(new_user = TRUE)
+gsLMSHabit<-gs_key("1fWdfu5yvFKtl8bUfXp6bSWdgTCxHiXPAnSW-JSk-IWc")  #download sheet information as an object
+classData<-gs_read(gsLMSHabit,ws="公告與練習") #access the 1st worksheet
+```
+
+### 1.1 元素內容替換
+變數「公-10-06」為1代表有看公告，請將classData$`公-10-06`改成factor類型且有看公告的人，他的觀察值為"有看公告"；沒看公告的觀察值為"沒看公告"。
+
+```{r ans11}
+```
+
+### 1.2 
+選出"有看公告"的classData樣本。
+
+```{r ans12}
+```
+
+### 1.3
+「練2018-10-17-1」為2018-10-17有課堂commit-push記錄的狀況，1表示有commit-push記錄，0表示沒有。
+
+在「有看公告」的人裡，有多少比例在2018-10-17有commit-push記錄（即值為1）。
+
+```{r ans13}
+```
+
+### 1.4
+在「沒看公告」的人裡，有多少比例在2018-10-17有commit-push記錄（即值為1）。
+
+```{r ans14}
+```
+
+## 2 作業繳交時間
+
+請執行以下程式： 
+```{r}
+gsLMSHabit<-gs_key("1fWdfu5yvFKtl8bUfXp6bSWdgTCxHiXPAnSW-JSk-IWc")  #download sheet information as an object
+hwData<-gs_read(gsLMSHabit,ws="作業上傳") 
+```
+
+
+### 2.1
+資料的Timestamp為台灣時間，請將Timestamp變數設定成為Date/Time類型（即POSIXct)且時區是"Asia/Taipei"。（hint: `lubridate::mdy_hms()`）
+```{r ans21}
+```
+
+### 2.2
+作業繳交期限是"2018-10-24 00:00:00"，請建立一個Date/Time物件名為`deadline`，其值為繳交期限。
+
+```{r ans22}
+```
+
+### 2.3
+將`deadline`減去`hwData$Timestap`你會得到一個向量物件，其class為difftime。它的值為兩個Date/Time差了多少秒,但這並不容易理解。使用`difftime()`算出每個作業交件提早了多少**天**, 並存在`hwData$early`裡。
+
+```{r ans23}
+```
+
+### 2.4
+利用`round()`將early變數的天數四捨五入到整數。
+
+```{r ans24}
+```
+
+### 2.5
+作業1（即作業代碼為"hw1"）準時交的人中，他們的提早天數分佈如何？請使用`table()`呈現。
+
+```{r ans25}
+```
+
