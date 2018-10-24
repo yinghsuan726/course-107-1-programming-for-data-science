@@ -10,7 +10,7 @@ params:
   gsPublicKey: "1NespAnPgIdVqtSOntojQpBhoJWbCDN4cnSpqcShc9O0"
 ---
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_chunk$set(echo = TRUE)
 library(tools)
 library(purrr)
@@ -20,8 +20,11 @@ library(knitr)
 library(googlesheets)
 gsCorrected<-gs_key(params$gskey)
 gsMapping<-gs_key(params$gsfileMapping)
+
 gsPublic<-gs_key(params$gsPublicKey)
 wsName<-params$hwcode
+
+dataSubmit <- gs_read(gsMapping,ws=wsName) #學生上傳結果
 ```
 
 # Convert Rmd to R
@@ -29,6 +32,8 @@ wsName<-params$hwcode
 **purlInfo** shows if a file fails to be purled. 
 
 ```{r convert Rmd to R}
+dataSubmit$新檔名 <- paste0(params$dirSet,"/",
+                         dataSubmit$新檔名)
 listOfRmds <- list_files_with_exts(params$dirSet,"Rmd")
 listOfRs <- str_replace(listOfRmds,"Rmd","R")
 
@@ -44,12 +49,11 @@ fileListPurl <- function(ix){
 
 map(1:length(listOfRmds),fileListPurl) -> purlInfo
 
-# 更新可產生的.R 
-listOfRs <- list_files_with_exts(params$dirSet,"R")
-
-#map(1:length(listOfRmds),
-#    function(x) purl(listOfRmds[x],output=listOfRs[x]))
-
+# 無法purl 記在dataSubmit$cannotPurl
+purlInfo %>% str_which("has problems") -> cannotPurl_ind
+dataSubmit %>% mutate(cannotPurl=(新檔名 %in% listOfRmds[cannotPurl_ind])) -> dataSubmit
+listOfRmds<-listOfRmds[-cannotPurl_ind]
+listOfRs <- str_replace(listOfRmds,"Rmd","R")
 ```
 
 ```{r chunk name locator}
@@ -132,6 +136,8 @@ map(listOfRs,appendTryCatch)
 responseCollection<-list()
 ansCollection<-list()
 for(i in 1:length(listOfRs)){
+  #i<-33
+  print(paste0(i,": ",listOfRs[i]))
   tryCatch({
     source(listOfRs[i])
     ansCollection[[i]]<-catchList
@@ -147,14 +153,28 @@ for(i in 1:length(listOfRs)){
 }
 ```
 
+### 問題
+
+```{r}
+# 無法run .R 的位置
+cannotProcess_ind <- responseCollection %>% map_lgl(is.character) 
+problemRmd<-listOfRmds[cannotProcess_ind]
+dataSubmit %>% mutate(cannotSourceR=(新檔名 %in% problemRmd)) ->
+  dataSubmit
+okListOfRmds<-listOfRmds[!cannotProcess_ind]
+okListOfRs <- str_replace(listOfRmds,"Rmd","R")
+okAnsCollection <- ansCollection[!cannotProcess_ind]
+```
+
 ## 對答案
 
 ```{r}
-upperListOfFiles <- toupper(listOfRs)
+upperListOfFiles <- toupper(okListOfRs)
 ansLoc<-str_which(upperListOfFiles,"ANS.R")
-studentAnswers <- ansCollection[-ansLoc]
-studentListOfRs <- listOfRs[-ansLoc]
-correctAnswers <- ansCollection[[ansLoc]]
+studentAnswers <- okAnsCollection[-ansLoc]
+studentListOfRs <- okListOfRs[-ansLoc]
+studentListOfRms <- okListOfRmds[-ansLoc]
+correctAnswers <- okAnsCollection[[ansLoc]]
 ```
 
 ```{r}
@@ -176,11 +196,14 @@ ansNames %>% str_which("ans") -> ansParts
 results<-c()
 for(j in 1:length(studentAnswers)){
   #j<-1 #第j個學生
+  #j<-9
   studentAnswers_j <- studentAnswers[[j]]
-  
+  #print(j)
   result_j<-c()
   for(i in 1:length(ansParts)){
   #第i題
+    #i<-2
+    #print(i)
     chunkName_i <- ansNames[ansParts[i]] #第i題的chunk name
     # 檢查有無對應改題method
     chunkNumber_i <- str_split_fixed(chunkName_i,"ans",n=2)[,2]
@@ -204,30 +227,36 @@ for(j in 1:length(studentAnswers)){
   }
   results <- rbind(results, result_j)
 }
+
 colnames(results) <- ansNames[ansParts]
 results <- as.data.frame(results)
+```
 
+```{r}
 studentAnswers %>% map_chr(~.$name) -> results$姓名
-studentAnswers %>% map_chr(~.$id) -> results$學號
+studentAnswers %>% map_chr(~as.character(.$id)) -> results$學號
+results$新檔名 <- studentListOfRms
 #results$檔名 <- studentListOfRs
 ```
 
 ```{r upload result to GS}
-gsMapping %>% gs_read(ws=wsName) -> fileMapping
+#gsMapping %>% gs_read(ws=wsName) -> fileMapping
 
-fileMapping %>% select(姓名,學號,新檔名) %>%
+dataSubmit %>% select(姓名,學號,新檔名,cannotPurl,cannotSourceR) %>%
   mutate(學號=as.character(學號)) %>%
-  left_join(results %>% select(-姓名),by=c("學號")) -> mergedResults
+  left_join(results %>% select(-姓名,-學號),by=c("新檔名")) -> mergedResults
 
 mergedResults %>% mutate(
-  上傳檔正常=(學號 %in% results$學號)) -> mergedResults
+  上傳檔正常=(!cannotPurl & !cannotSourceR)
+  ) -> mergedResults
 ```
 
 ```{r, eval=T}
 publicResults <-
   mergedResults %>% select(
-    -姓名,-新檔名
+    -姓名,-新檔名,-cannotPurl, -cannotSourceR
   )
+str_split_fixed(mergedResults$新檔名,"ans/",n=2)[,2]->mergedResults$新檔名
   
 if(wsName %in% gs_ws_ls(gsCorrected)){
   gs_edit_cells(gsCorrected,ws=wsName,
