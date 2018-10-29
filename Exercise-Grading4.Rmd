@@ -12,12 +12,21 @@ params:
 
 ```{r setup}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
 library(tools)
 library(purrr)
 library(stringr)
 library(dplyr)
 library(knitr)
 library(googlesheets)
+ENV = new.env(parent = .BaseNamespaceEnv)
+# Attache it to the search path so that objects in your environment can be
+# found from the global environment (i.e. from the console):
+attach(ENV)
+# do things:
+
 gsCorrected<-gs_key(params$gskey)
 gsMapping<-gs_key(params$gsfileMapping)
 
@@ -38,14 +47,14 @@ file.remove(list_files_with_exts(dirSet,"R"))
 file.remove(list_files_with_exts(dirSet,"Rdata"))
 dataSubmit$新檔名 <- paste0(params$dirSet,"/",
                          dataSubmit$新檔名)
-listOfRmds <- list_files_with_exts(params$dirSet,"Rmd")
-listOfRs <- str_replace(listOfRmds,"Rmd","R")
+
 ```
 
 ## 檢查Encoding
 ```{r}
 library(purrr)
 library(readr)
+listOfRmds <- list_files_with_exts(params$dirSet,"Rmd")
 map(listOfRmds,readr::guess_encoding) -> encodingGuess
 map_chr(encodingGuess,function(x) x$encoding[1]) -> encodingList
 
@@ -72,10 +81,10 @@ dataSubmit %>%
 ```
 
 
-```{r}
+```{r purl to R files}
 fileListPurl <- function(ix){
   tryCatch({
-    purl(listOfRmds[ix],output=listOfRs[ix])
+    purl(listOfRmds[ix],output=str_replace(listOfRmds[ix],"Rmd","R"))
   },
     error=function(e){
       print(paste0(listOfRmds[ix]," has problems."))
@@ -170,6 +179,9 @@ appendTryCatch <- function(.x){
   appendedContent <- c(appendedContent,
                        paste0("save(catchList,file='",RdataName,"')"))
   
+  # rm list in the front
+  appendedContent <- c("rm(list=ls())",appendedContent)
+  
   writeLines(appendedContent,
              con=.x)
   
@@ -181,12 +193,9 @@ appendTryCatch <- function(.x){
 responseCollection: 執行R檔的結果
 
 ```{r create all tryCatch files, message=FALSE, error=FALSE}
-#file.remove(list_files_with_exts(dirSet,"R"))
-
+listOfRs <- list_files_with_exts(params$dirSet,"R")
 map(listOfRs,appendTryCatch)
 
-responseCollection<-vector("list",length=length(listOfRs))# list()
-ansCollection<-vector("list",length=length(listOfRs))# list()
 listOfRs %>% 
   str_split_fixed("ans/",n=2) %>%
   {.[,2]} %>% 
@@ -194,24 +203,30 @@ listOfRs %>%
   {.[,1]} -> hwNames
 listOfSavedTryCatchFiles <-
   paste0(params$dirSet,"/",hwNames,".Rdata")
-```
 
-```{r 執行學生tryCatch R}
+responseCollection<-vector("list",length=length(listOfRs))# list()
+#ansCollection<-vector("list",length=length(listOfRs))# list()
 for(i in 1:length(listOfRs)){
   #i<-33
-  print(paste0(i,": ",listOfRs[i]))
-  tryCatch({
-    # 執行學生tryCatch R檔
-    source(listOfRs[i])
+  #print(paste0(i,": ",listOfRs[i]))
+  tryCatch(
+    {
     # 儲存學生catchList
     # save(catchList,file=listOfSavedTryCatchFiles[i])
-    ansCollection[[i]]<-catchList
-    rm(list=c("catchList"))
-  },
-  error=function(e){
-    ansCollection[[i]]<-"Cannot process"
+    #ansCollection[[i]]<-catchList
+    responseCollection[[i]] <- "ok"
+    #rm(list=c("catchList"))
+    print(paste0(i,": ok, ",listOfRs[i]))
+    # 執行學生tryCatch R檔
+    source(listOfRs[i],ENV)
     }
-  )->responseCollection[[i]] 
+    , error=function(e){
+    #ansCollection[[i]]<-"Cannot process"
+    responseCollection[[i]] <- "Cannot process"
+    print(paste0(i,": Fail, ",listOfRs[i]))
+    #rm(list=c("catchList"))
+    }
+  ) 
   
   # 清空name id以免下一個學生是NULL而冠上了前個學生資訊
   params$studentID <- "NA"
@@ -220,7 +235,13 @@ for(i in 1:length(listOfRs)){
 
 # 有些tryCatch R file無法儲存catchList到Rdata
 # 記錄可儲存catchList的名單
-oklistOfSavedTryCatchFiles <-  list_files_with_exts(dirSet,"Rdata")
+oklistOfSavedTryCatchFiles <- list_files_with_exts(dirSet,"Rdata")
+
+
+#ansLoc <- str_which(listOfRs,"-ans.R")
+#source(listOfRs[ansLoc])
+
+#source(listOfRs[length(listOfRs)])
 ```
 
 ### 問題
@@ -233,7 +254,7 @@ oklistOfSavedTryCatchFiles %>%
 
 cannotProcess_ind <- which(!(listOfRmds %in% okRmd)) 
 problemRmd<-listOfRmds[cannotProcess_ind]
-dataSubmit %>% mutate(cannotSourceR=!(shortHWname %in% okShortHWName)) ->
+dataSubmit %>% mutate(cannotSourceR=!(新檔名 %in% okRmd)) ->
   dataSubmit
 okListOfRmds<-listOfRmds[!cannotProcess_ind]
 okListOfRs <- str_replace(listOfRmds,"Rmd","R")
