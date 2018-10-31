@@ -22,7 +22,7 @@ classData<-gs_read(gsLMSHabit,ws="公告與練習") #access the 1st worksheet
 ```
 
 ### 1.2 
-選出"有看公告"的classData樣本。
+選出"有看公告"的classData樣本（樣本是指 全部的變數（全部column）都選，但rows只選符合條件的。）。
 
 ```{r ans12}
 ```
