@@ -1,0 +1,272 @@
+---
+title: "Convert Rmd to R"
+author: "林茂廷"
+output: html_document
+params:
+  dirSet: "./Exercise3/ans"
+  hwcode: "Exercise3"
+  gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
+  gsfileMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
+  gsPublicKey: "1NespAnPgIdVqtSOntojQpBhoJWbCDN4cnSpqcShc9O0"
+  markOffItems: c("gs_")
+---
+！！！要以new project重開才執行！！！
+
+```{r, message=F}
+rm(list=setdiff(ls(),"params"))
+library(tools)
+library(purrr)
+library(stringr)
+library(dplyr)
+library(knitr)
+library(googlesheets)
+ENV = new.env(parent = .BaseNamespaceEnv)
+# Attache it to the search path so that objects in your environment can be
+# found from the global environment (i.e. from the console):
+attach(ENV)
+
+gsCorrected<-gs_key(params$gskey)
+gsMapping<-gs_key(params$gsfileMapping)
+
+gsPublic<-gs_key(params$gsPublicKey)
+wsName<-params$hwcode
+dirSet <- params$dirSet
+dataSubmit <- gs_read(gsMapping,ws=wsName) #學生上傳結果
+
+dataSubmit %>% mutate(shortHWname=file_path_sans_ext(新檔名)) -> dataSubmit
+```
+
+```{r convert Rmd to R}
+file.remove(list_files_with_exts(dirSet,"R"))
+file.remove(list_files_with_exts(dirSet,"Rda"))
+dataSubmit$新檔名 <- paste0(params$dirSet,"/",
+                         dataSubmit$新檔名)
+
+```
+
+## 檢查Encoding
+```{r}
+library(purrr)
+library(readr)
+library(dplyr)
+library(stringr)
+listOfRmds <- list_files_with_exts(params$dirSet,"Rmd")
+map(listOfRmds,readr::guess_encoding) -> encodingGuess
+map_chr(encodingGuess,function(x) x$encoding[1]) -> encodingList
+
+dataEncoding <- data.frame(
+  Filename = listOfRmds,
+  Encoding = encodingList,
+  stringsAsFactors = F
+)
+
+library(dplyr)
+dataEncoding %>%
+  filter(Encoding != "UTF-8") -> nonUTF8Rmds
+if(nrow(nonUTF8Rmds)!=0){
+  for(i in 1:nrow(nonUTF8Rmds)){
+    #i<-1
+    rawRmd_i<-read_lines(nonUTF8Rmds$Filename[i],locale=locale(encoding=nonUTF8Rmds$Encoding[i]))
+    write_lines(rawRmd_i,path=nonUTF8Rmds$Filename[i])
+  }
+}
+
+## 記錄encoding狀態
+dataSubmit %>% 
+  left_join(dataEncoding,by=c("新檔名"="Filename")) -> dataSubmit
+```
+
+# Convert Rmd to R
+
+**purlInfo** shows if a file fails to be purled. 
+
+```{r purl to R files, message=F}
+fileListPurl <- function(ix){
+  tryCatch({
+    purl(listOfRmds[ix],output=str_replace(listOfRmds[ix],"Rmd","R"))
+  },
+    error=function(e){
+      print(paste0(listOfRmds[ix]," has problems."))
+    }
+  )
+}
+
+map(1:length(listOfRmds),fileListPurl) -> purlInfo
+
+# 無法purl 記在dataSubmit$cannotPurl
+purlInfo %>% str_which("has problems") -> cannotPurl_ind
+dataSubmit %>% mutate(cannotPurl=(新檔名 %in% listOfRmds[cannotPurl_ind])) -> dataSubmit
+#save(dataSubmit,file="cannotPurl.Rda")
+```
+
+
+## 儲存purl, Encoding狀態
+
+```{r}
+save(dataSubmit,file=paste0("./",params$hwcode,"/dataSubmitTrack.Rda"))
+```
+
+
+```{r}
+if(length(cannotPurl_ind)>0){ # 有無法purl檔時
+  listOfRmds<-listOfRmds[-cannotPurl_ind]
+  listOfRs <- str_replace(listOfRmds,"Rmd","R")
+}
+```
+
+## 增加tryCatch
+
+```{r chunk name locator}
+codeChunkName <- function(codeNameLine){
+  str_split_fixed(codeNameLine,
+                  "## ----",
+                  n=4)[,2]->name2
+  str_split_fixed(name2,"---------------------------------------------------------------",
+                  n=4)[,1]->nameFinal
+  return(nameFinal)
+}
+listOfRs <- list_files_with_exts(params$dirSet,"R")
+ansR<- listOfRs[str_which(listOfRs,"ans.R")]
+```
+
+## 定義tryCatch學生答案程式檔產生函數
+
+```{r tryCatch appending function}
+appendTryCatch <- function(.x){
+  # .x  the path file to append tryCatch()
+  #.x <- listOfRs[5]
+  #.x <- ansR
+  ## 取得每個chunk名稱
+  originContent <- readLines(.x)
+  
+  ## remove setup chunk
+  originContent %>% str_which("opts_chunk") -> setupLines
+  if(length(setupLines)>0){
+    originContent <- originContent[-setupLines]
+  }
+
+  nLines<-length(originContent)
+  originContent %>% str_which("## ----") -> chunkStartLocs
+  purrr::map_chr(originContent[chunkStartLocs],
+        codeChunkName) -> chunkNameList #取得每個chunk的名稱
+  
+  appendedContent<-originContent[1:chunkStartLocs[1]]
+  
+  chunkStartLocs <- c(chunkStartLocs,nLines+1)
+  dataObjects<-c()
+  for(i in 1:(length(chunkStartLocs)-1)){
+    #i <- 1
+    startLine <- chunkStartLocs[i]+1
+    endLine <- chunkStartLocs[i+1]-1
+    chunkContent<-originContent[startLine:endLine]
+    if(chunkNameList[[i]]==""){
+      appendedContent<-
+        c(
+          appendedContent,
+          "tryCatch({",
+          chunkContent,
+          "},",
+          "error=function(e){}",
+          ")"
+         )
+    } else if(str_detect(chunkNameList[[i]],"data")==T){
+      ## 資料引入chunk
+      appendedContent<- c(appendedContent,
+                          chunkContent)
+      ## 記錄此chunk的data object
+      dataLines<-chunkContent[str_detect(chunkContent,"<-")]
+      dataObjects<-c(
+        dataObjects,
+        str_split_fixed(dataLines,"<-",n=3)[,1]
+      )
+    } else {
+      appendedContent<-
+        c(
+          appendedContent,
+          "tryCatch({",
+          "eval({",
+          chunkContent,
+          paste0("})->","catchList[['",chunkNameList[i],"']]"),
+          "},",
+          "error=function(e){}",
+          ")"
+         )
+    }
+  }
+  
+  # initiate catchList at top
+  validChunkNames <- chunkNameList[chunkNameList!=""]
+  paste0(validChunkNames,collapse="','")->state1
+  paste0("validChunkNames<-c('",state1,"','name','id')")->state2
+  appendedContent <- c(
+    state2,
+    "catchList <- vector('list',length(validChunkNames))",
+    "names(catchList)<-validChunkNames",
+    appendedContent)
+  
+  # tug name and id at the end
+  appendedContent <- c(appendedContent,
+    "catchList[['name']]<-params$studentName",
+    "catchList[['id']]<-params$studentID")
+  
+  # tug catchList saved in Rda
+  RdaName<-paste0(str_split_fixed(.x,".R",n=2)[,1],".Rda")
+  appendedContent <- c(appendedContent,
+                       "print(length(catchList))",
+                       paste0("save(catchList,file='",RdaName,"')"))
+  
+  #appendedContent <- c("runFun<-function(){",appendedContent)
+  appendedContent <- c(appendedContent,
+                       "rightListLength<-(length(catchList)==length(validChunkNames))",
+                       "catchList<-NULL",
+                       "print(rightListLength)")
+                       #"return(rightListLength)}",
+                       #"valid<-runFun()")
+  
+  
+  # rm list in the front
+  #appendedContent <- c("rm(list=ls())",appendedContent)
+  
+  writeLines(appendedContent,
+             con=.x)
+  return(dataObjects)
+}
+```
+
+
+```{r 增加try catch到R, message=FALSE, error=FALSE}
+
+## 增加tryCatch到R檔
+
+map(listOfRs,appendTryCatch)->outRs
+```
+
+```{r}
+## markout dataSet import
+ansLoc<-str_which(listOfRs,"ans.R")
+outRs[[ansLoc]]->dataObjects
+objectsOut<-c(dataObjects,eval(parse(text=params$markOffItems)))
+listOfRsNoAns<-listOfRs[-ansLoc]
+for(i in 1:length(listOfRsNoAns)){
+  #i<-1
+  originContent <- readLines(listOfRsNoAns[i])
+  lapply(objectsOut,
+         function(x) {
+           loc<-str_which(originContent,x)
+           min(loc)
+         })->dataLines
+  dataLines<-unlist(dataLines)
+  
+  originContent[dataLines]<-str_c("# ",originContent[dataLines])
+  
+  writeLines(originContent,
+           con=listOfRsNoAns[i])
+}
+```
+
+## 儲存dataObjects狀態
+
+```{r}
+save(dataSubmit,dataObjects,file=paste0("./",params$hwcode,"/dataSubmitTrack.Rda"))
+```
+
