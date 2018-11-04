@@ -20,10 +20,10 @@ library(stringr)
 library(dplyr)
 library(knitr)
 library(googlesheets)
-ENV = new.env(parent = .BaseNamespaceEnv)
-# Attache it to the search path so that objects in your environment can be
-# found from the global environment (i.e. from the console):
-attach(ENV)
+# ENV = new.env(parent = .BaseNamespaceEnv)
+# # Attache it to the search path so that objects in your environment can be
+# # found from the global environment (i.e. from the console):
+# attach(ENV)
 
 gsCorrected<-gs_key(params$gskey)
 gsMapping<-gs_key(params$gsfileMapping)
@@ -31,7 +31,44 @@ gsMapping<-gs_key(params$gsfileMapping)
 gsPublic<-gs_key(params$gsPublicKey)
 wsName<-params$hwcode
 dirSet <- params$dirSet
+
+```
+
+```{r}
 dataSubmit <- gs_read(gsMapping,ws=wsName) #學生上傳結果
+dataSubmit %>% group_by(學號) %>%
+  arrange(desc(Timestamp)) %>%
+  slice(1) -> uniqueDataSubmit # 留下不重覆的最新上傳
+
+which(!(dataSubmit$新檔名 %in% uniqueDataSubmit$新檔名))->notToKeep
+
+if(length(notToKeep)!=0){ #有重覆檔，需把舊檔放在trash/
+  trashDir <- paste0(params$dirSet,"/trash")
+  if(!dir.exists(trashDir)){
+    dir.create(trashDir)
+  }
+  
+  list.of.files.toMove <- 
+    paste(dirSet, dataSubmit$新檔名[notToKeep], sep = '/')
+ 
+  # copy the files to the new folder
+  file.copy(list.of.files.toMove, trashDir)
+  file.remove(list.of.files.toMove)
+  
+}
+```
+
+```{r}
+
+if(length(notToKeep)>0){
+  dataSubmit[notToKeep,]<-""
+  dataSubmit %>% arrange(desc(新檔名)) -> dataSubmit
+
+  # 更新 檔案對應表
+  gs_edit_cells(gsMapping,ws=wsName,
+                  input=dataSubmit, col_names = TRUE,
+                  anchor="A1") 
+}
 
 dataSubmit %>% mutate(shortHWname=file_path_sans_ext(新檔名)) -> dataSubmit
 ```

@@ -4,7 +4,7 @@ author: "林茂廷"
 date: "11/06/2018"
 output: html_document
 params:
-  deadline: 2018-11-06
+  deadline: 2018-11-05
   hwcode: Exercise3
   ansDir: "./Exercise3/ans"
   gsFileNameMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
@@ -140,7 +140,7 @@ dataSubmit$原始檔名 <- oldNameCollect
 
 ## 上傳到GS 
 
-```{r 原GS記錄已下載}
+```{r 在原GS記錄已下載}
 # 計算原dataSubmit0這次下載的位置
 dataSubmit0 %>% transmute(id=paste0(mdy_hms(Timestamp),學號)) %>% .$id -> id
 
@@ -163,9 +163,12 @@ dataSubmit %>% select(Timestamp,姓名,學號,原始檔名,新檔名) ->
 gsFileMap<-gs_key(params$gsFileNameMapping)
 
 if(params$hwcode %in% gs_ws_ls(gsFileMap)){
+  currentFileMap <- gs_read(gsFileMap,ws=params$hwcode)
+  numberOfOldDownload <- nrow(currentFileMap)
+  anchor=paste0("A",numberOfOldDownload+2)
   gs_edit_cells(gsFileMap,ws=params$hwcode,
-                input=dataUpload, col_names = TRUE,
-                anchor="A1")
+                input=dataUpload, col_names = FALSE,
+                anchor=anchor)
   
 } else {
   gs_ws_new(gsFileMap,ws_title=params$hwcode,
