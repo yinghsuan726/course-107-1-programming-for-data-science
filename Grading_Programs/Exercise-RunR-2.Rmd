@@ -3,7 +3,7 @@ title: "Grading with flexible methods"
 author: "林茂廷"
 output: html_document
 params:
-  dirSet: "./Exercise3/ans"
+  dirSet: "../Exercise3/ans"
   hwcode: "Exercise3"
   gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
   gsfileMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
@@ -28,7 +28,7 @@ ansR<-listOfRs[ansLoc]
 
 # 執行ansR的資料引入
 ## 清空目前env可能有和dataObjects相名稱的物作
-load(paste0("./",params$hwcode,"/dataSubmitTrack.Rda"))
+load(paste0("../",params$hwcode,"/dataSubmitTrack.Rda"))
 rm(list=dataObjects)
 
 originContent <- readLines(ansR)
@@ -46,18 +46,27 @@ eval(parse(
 
 ```{r}
 # Remove everything but dataObjects
-rm(list=setdiff(ls(),c(dataObjects,"dataObjects","listOfRs","params")))
+rm(list=setdiff(ls(),c(dataObjects,"dataObjects","listOfRs","params","markoutDatasetStatus")))
 
 # Run R to get Rda
 library(rlang)
-for(i in 1:length(listOfRs)){
+validSequence<-{1:length(listOfRs)}[markoutDatasetStatus]
+validRda<-rep(F,length(listOfRs)) # 可否產生Rda
+for(i in validSequence){
   dataEnv <- env() # renew environment each time
-   
-  map(dataObjects,
-      ~eval(parse(text=paste0("assign('",
-         .,"',",
-         .,",envir=dataEnv)"))))
-  source(listOfRs[i],dataEnv)  
+  tryCatch(
+    {
+      map(dataObjects,
+          ~eval(parse(text=paste0("assign('",
+             .,"',",
+             .,",envir=dataEnv)"))))
+      source(listOfRs[i],dataEnv)  
+      validRda[i]<-T
+    },
+    error=function(e){
+      
+    }
+  ) 
 }
 
 ```
@@ -78,7 +87,7 @@ responseCollection<-vector("list",length=length(listOfRs))# list()
 # 記錄可儲存catchList的名單
 oklistOfSavedTryCatchFiles <- list_files_with_exts(params$dirSet,"Rda")
 
-load(paste0("./",params$hwcode,"/dataSubmitTrack.Rda"))
+load(paste0("../",params$hwcode,"/dataSubmitTrack.Rda"))
 dataSubmit$新檔名 %>% str_which(".Rmd") -> validRmds
 dataSubmit$新檔名[validRmds] %>% str_replace(".Rmd",".Rda") %>%
   {. %in% oklistOfSavedTryCatchFiles} %>%
@@ -167,6 +176,21 @@ dataSubmit %>% left_join(
 dataSubmit %>% select(姓名,學號,新檔名,Encoding,cannotPurl,cannotRda,starts_with("ans")) %>%
   mutate(學號=as.character(學號))  -> mergedResults
 
+# 更新dataSubmitBackup ProcessedTime
+processedID <- which(dataSubmitBackup$學號 %in%
+                       dataSubmit$學號)
+
+dataSubmitBackup$ProcessedTime[processedID]<-
+  as.character(Sys.time())
+dataUpload <- dataSubmitBackup %>%
+  select(Timestamp:ProcessedTime)
+library(googlesheets)
+gsFileMap<-gs_key(params$gsfileMapping)
+gs_edit_cells(gsFileMap,ws=params$hwcode,
+              input=dataUpload, col_names = FALSE,
+              anchor="A1")
+
+
 mergedResults %>% mutate(
   上傳檔正常=(!cannotPurl & (Encoding=="UTF-8") & !cannotRda)
   ) -> mergedResults
@@ -194,21 +218,54 @@ str_split_fixed(mergedResults$新檔名,"ans/",n=2)[,2]->mergedResults$新檔名
 wsNameTemp <- paste0(params$hwcode,"-",Sys.Date())
 
 gsCorrected<-gs_key(params$gskey)
+gsCorrected$ws$ws_title %>% 
+  str_which(params$hwcode) %>%
+  {gsCorrected$ws$ws_title[.]} %>%
+  sort(decreasing=T) %>%
+  {.[1]} -> latestWS
+latestCorrectedWS <- gs_read(
+  gsCorrected, ws=latestWS
+)
+latestCorrectedWS %>% 
+  mutate(學號=as.character(學號)) %>%
+  filter(!(學號 %in% mergedResults$學號)) -> 
+  keepedRecords
+keepedRecords %>%
+  dplyr::bind_rows(mergedResults) %>%
+  arrange(學號)-> updateCorrectedWS
+
 gsPublic<-gs_key(params$gsPublicKey)
+
+gsPublic$ws$ws_title %>% 
+  str_which(params$hwcode) %>%
+  {gsPublic$ws$ws_title[.]} %>%
+  sort(decreasing=T) %>%
+  {.[1]} -> latestPublicWS
+latestCorrectedPublicWS <- gs_read(
+  gsPublic, ws=latestPublicWS
+)
+latestCorrectedPublicWS %>% 
+  mutate(學號=as.character(學號)) %>%
+  filter(!(學號 %in% publicResults$學號)) -> 
+  keepedPublicRecords
+keepedPublicRecords %>%
+  dplyr::bind_rows(publicResults) %>%
+  arrange(學號)-> updateCorrectedPublicWS
+
 
 if(wsNameTemp %in% gs_ws_ls(gsCorrected)){
   gs_edit_cells(gsCorrected,ws=wsNameTemp,
-                input=mergedResults, col_names = TRUE,
+                input=updateCorrectedWS, col_names = TRUE,
                 anchor="A1")
   gs_edit_cells(gsPublic,ws=wsNameTemp,
-                input=publicResults, col_names = TRUE,
+                input=updateCorrectedPublicWS, col_names = TRUE,
                 anchor="A1")  
 } else {
   gs_ws_new(gsCorrected,ws=wsNameTemp,
-            input=mergedResults, col_names = TRUE,
+            input=updateCorrectedWS, col_names = TRUE,
             anchor="A1")  
   gs_ws_new(gsPublic,ws=wsNameTemp,
-              input=publicResults, col_names = TRUE,
+              input=updateCorrectedPublicWS, col_names = TRUE,
               anchor="A1")
 
 }

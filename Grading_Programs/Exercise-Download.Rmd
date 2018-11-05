@@ -6,11 +6,11 @@ output: html_document
 params:
   deadline: 2018-11-05
   hwcode: Exercise3
-  ansDir: "./Exercise3/ans"
+  ansDir: "../Exercise3/ans" #放在\Grading_Programs要..
   gsFileNameMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
   gsClassInfo: "1E1P2na_-iRzczWxRVa09ldjE9NMidJOX0RGw9muhZfw"
 ---
-
+!!! 檢查 174 檔案mapping更新 colname 被蓋掉問題
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -109,6 +109,7 @@ dataSubmit %>%
 ## 產生新檔名
 
 ```{r creatNewFileName}
+library(googledrive)
 newNamefun<-function(fileAccessURL,i,numberOfDownloaded){
   programFileId<-as_id(fileAccessURL)
   programFileNameOld<-drive_get(id=programFileId)$name
@@ -128,12 +129,29 @@ for(i in 1:dim(dataSubmit)[1]){
   submission_i<-dataSubmit[i,]
   
   fileName<-newNamefun(dataSubmit[i,]$答案檔,i,numberOfDownloaded)
+  ###
+  # file_download<-drive_download(as_id(dataSubmit[i,]$答案檔))
+  # file.rename(fileName$old,fileName$new)
+  # file.copy(fileName$new,paste0(params$ansDir))
+  ###
+  ##print(getwd())
   drive_download(as_id(dataSubmit[i,]$答案檔),
                 path=paste0(params$ansDir,"/",fileName$new),
                  overwrite = T)
+  # drive_download(as_id(dataSubmit[i,]$答案檔),
+  #               path=
+  #                 paste0(
+  #                   getwd(),
+  #                   str_replace(params$ansDir,".",""),
+  #                   "/",
+  #                   fileName$new
+  #                   ))
+  
   newNameCollect <- c(newNameCollect, fileName$new)
   oldNameCollect <- c(oldNameCollect, fileName$old)
 }
+# 確保.Rmd 而非 .rmd .rMd等
+str_replace(newNameCollect,regex("Rmd", ignore_case = T),"Rmd")->newNameCollect
 dataSubmit$新檔名 <- newNameCollect
 dataSubmit$原始檔名 <- oldNameCollect
 ```
@@ -160,6 +178,10 @@ gs_edit_cells(gsSubmit,ws="Form Responses 1",
 ```{r}
 dataSubmit %>% select(Timestamp,姓名,學號,原始檔名,新檔名) ->
   dataUpload
+
+# 記錄processedTime
+dataUpload$downloadTime<-Sys.time()
+
 gsFileMap<-gs_key(params$gsFileNameMapping)
 
 if(params$hwcode %in% gs_ws_ls(gsFileMap)){
@@ -169,75 +191,6 @@ if(params$hwcode %in% gs_ws_ls(gsFileMap)){
   gs_edit_cells(gsFileMap,ws=params$hwcode,
                 input=dataUpload, col_names = FALSE,
                 anchor=anchor)
-  
-} else {
-  gs_ws_new(gsFileMap,ws_title=params$hwcode,
-            input=dataUpload, col_names = TRUE,
-            anchor="A1")  
-}
-```
-
-
-```{r, eval=FALSE}
-dataSubmit %>% select(Timestamp,姓名,學號,原始檔名,新檔名) ->
-  dataUpload
-
-# 已存在的檔案
-gsFileMap<-gs_key(params$gsFileNameMapping)
-existFileData<-gs_read(gsFileMap, ws=params$hwcode)
-
-existFileData %>% mutate(Timestamp=ymd_hms(Timestamp))->
-  existFileData
-dataSubmit0 %>% mutate(Timestamp=mdy_hms(Timestamp)) ->
-  dataSubmit0
-
-# 在dataSubmit0中標示最近交的時間latestDownload
-dataSubmit0$latestDownload <- ymd_hms("2018-01-01 00:00:00 UTC")
-dataSubmit0 %>% {which(.$作業代碼==params$hwcode)} -> currentHWlist #本次作業全部上傳（不管有無下載過）在dataSubmit0的row位置
-
-
-dataSubmit0[currentHWlist,] %>% group_by(學號) %>%
-  mutate(
-    latestDownload2=ifelse(
-      學號 %in% existFileData$學號,#下載過
-      ymd_hms(existFileData$Timestamp[existFileData$學號==學號]),
-      ymd_hms(latestDownload))
-  )->dataSubmit1
-
-dataSubmit1$latestDownload2 %>% as_datetime ->
-  dataSubmit1$latestDownload2
-
-newDownloadTimeInd<-!is.na(dataSubmit1$latestDownload2)
-dataSubmit1$latestDownload[newDownloadTimeInd] <- 
-  dataSubmit1$latestDownload2[newDownloadTimeInd]
-  as_datetime(dataSubmit1$latestDownload2[newDownloadTimeInd])
-
-dataSubmit1$alreadyDownloaded <-
-  dataSubmit1$Timestamp <= dataSubmit1$latestDownload2
-
-# To reset downloaded
-currentHWlist[is.na(dataSubmit1$alreadyDownloaded)]-> resetloc
-
-dataSubmit0[resetloc,] %>% View
-
-# 已存在檔案中有那些不在dataSubmit0裡
-
-# dataSubmit0裡有那些人已交過作業
-
-dataSubmit0 %>% mutate(
-  id=
-    paste0(mdy_hms(Timestamp),學號))  %>%
-  filter(作業代碼==params$hwcode & (id %in% existFileData$id) ) # 已交作業的人
-
--> unrecordedFiles
- 
-unrecordedFiles$id[7]
-existFileData$id[5]
-
-if(params$hwcode %in% gs_ws_ls(gsFileMap)){
-  gs_edit_cells(gsFileMap,ws=params$hwcode,
-                input=dataUpload, col_names = TRUE,
-                anchor="A1")
   
 } else {
   gs_ws_new(gsFileMap,ws_title=params$hwcode,
