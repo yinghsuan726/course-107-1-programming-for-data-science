@@ -1,0 +1,501 @@
+---
+title: "下載學生GDrive作業"
+author: "林茂廷"
+date: "11/06/2018"
+output: html_document
+params:
+  deadline: 2018-11-05
+  hwcode: Exercise3
+  ansDir: "../Exercise3/ans" #放在\Grading_Programs要..
+  gsFileNameMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
+  gsClassInfo: "1E1P2na_-iRzczWxRVa09ldjE9NMidJOX0RGw9muhZfw"
+  gsFileUpload: "1G8NjBYgWcQFVT8ms4c5HmWp19V_DvJ5u1rEKVNLRmZs"
+  markOffItems: c("gs_")
+---
+!!! 檢查 174 檔案mapping更新 colname 被蓋掉問題
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+workingPath<-paste0(params$ansDir)
+```
+
+## 引入GS
+
+```{r import g sheets}
+library(dplyr)
+library(googlesheets)
+library(lubridate)
+library(stringr)
+library(readr)
+library(stringr)
+library(googledrive)
+library(tools)
+#gs_auth(new_user = TRUE)
+
+# 引入線上繳件資料
+gsSubmit<-gs_key(params$gsFileUpload)
+dataSubmit0 <- gs_read(gsSubmit,ws="Form Responses 1") 
+dataSubmit0 %>% filter(作業代碼==params$hwcode) -> dataSubmit
+```
+
+# 作業上傳gs記錄
+
+## 創新ws
+```{r}
+dataSubmit %>% filter(作業代碼==params$hwcode) ->
+  dataSubmit
+
+if(!any(str_detect(gsSubmit$ws$ws_title,params$hwcode))){
+  # 若不存在作業ws則創新ws
+  gs_ws_new(gsSubmit,ws=params$hwcode)
+  gsSubmit<-gs_key(params$gsFileUpload)
+} 
+
+# 計算每位的上傳次數，及每個上傳的下載排序
+dataSubmit %>% mutate(
+  Timestamp=lubridate::mdy_hms(Timestamp,tz="Asia/Taipei")
+  ) %>% group_by(學號) %>%
+  arrange(desc(Timestamp)) %>% 
+  mutate(下載排序=1:n(),總上傳次數=n()) %>%
+  ungroup -> # 1為最新檔案
+  dataSubmit 
+
+# 標示「在期限內」
+# parse deadline
+deadlineDateTime <- paste0(params$deadline, " 23:59:59 CST")
+deadlineDateTime %>% ymd_hms(tz="Asia/Taipei") -> deadlineDateTime
+
+dataSubmit %>% 
+  mutate(在期限內=(Timestamp < deadlineDateTime)) -> dataSubmit
+
+if(!any(gsSubmit$ws$ws_title==params$hwcode)){
+  gs_ws_new(gsSubmit,ws=params$hwcode)
+  gsSubmit<-gs_key(params$gsFileUpload)
+}
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws=params$hwcode,
+                input=.,
+                col_names = T)
+```
+
+
+## 比對學號輸出正確性
+
+```{r}
+ClassInfoSheets <- gs_key(params$gsClassInfo)
+gs_read(ClassInfoSheets,ws="LMS") -> dataLMS #數位學苑資料
+gs_read(ClassInfoSheets,ws="全班資訊") -> 
+  dataAllInfo #含所有回填資訊
+dataLMS %>% select(帳號,信箱) %>%
+  rename(LMS學號=帳號,
+           `Email Address`=信箱) -> idEmailLMS
+dataAllInfo %>% select(學號,Gmail) %>%
+  rename(
+    Survey學號=學號,
+    `Email Address`=Gmail) -> 
+  idEmailSurvey
+
+# Email有在LMS的, 學號以LMS為準
+dataSubmit %>% mutate(
+  EmailatLMS=(`Email Address` %in% idEmailLMS$`Email Address`)
+  ) -> dataSubmit
+dataSubmit %>% left_join(
+  idEmailLMS,by=c("Email Address")
+) -> dataSubmit
+
+dataSubmit %>%
+  mutate(
+    學號=ifelse(EmailatLMS == TRUE,LMS學號,學號)
+  ) %>%
+  select(-c("EmailatLMS","LMS學號")) -> dataSubmit
+
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws=params$hwcode,
+                input=.,
+                col_names = T)
+```
+
+## 選出在期限內最新的作業上傳
+
+```{r}
+
+# 每位同學的最新檔案放在Temp暫存ws，等候下載
+if(!any(str_detect(gsSubmit$ws$ws_title,"Temp"))){ 
+  # 若不存在Temp ws則創新ws,  用來暫存要下載的最新檔案
+  gs_ws_new(gsSubmit,ws="Temp")
+  gsSubmit<-gs_key(params$gsFileUpload)
+} 
+
+dataSubmit %>% 
+  filter(
+    在期限內==T
+  ) %>% 
+  group_by(學號) %>%
+  filter(下載排序==min(下載排序))  %>%
+  ungroup() %>%
+  arrange(學號) -> dataSubmit
+
+# Temp ws依學號排序，記錄每位同學期限內上傳的最新檔
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws="Temp",
+                input=.,
+                col_names = T)
+```
+
+## 產生新檔名
+
+```{r creatNewFileName}
+library(googledrive)
+newNamefun<-function(fileAccessURL,i,numberOfDownloaded=0){
+  programFileId<-as_id(fileAccessURL)
+  programFileNameOld<-drive_get(id=programFileId)$name
+  programFileNameExtension<-file_ext(programFileNameOld)
+  programFileNameNew<-paste0(params$hwcode,"_",i+numberOfDownloaded,".",programFileNameExtension,collapse = ".") 
+  fileName<- list(
+    new = programFileNameNew,
+    old = programFileNameOld
+  )
+  return(fileName)
+}
+
+newNameCollect <- character()
+oldNameCollect <- character()
+for(i in 1:dim(dataSubmit)[1]){
+  #i<-1
+  submission_i<-dataSubmit[i,]
+  
+  fileName<-newNamefun(dataSubmit[i,]$答案檔,i)
+  ###
+  # file_download<-drive_download(as_id(dataSubmit[i,]$答案檔))
+  # file.rename(fileName$old,fileName$new)
+  # file.copy(fileName$new,paste0(params$ansDir))
+  ###
+  ##print(getwd())
+  drive_download(as_id(dataSubmit[i,]$答案檔),
+                path=paste0(params$ansDir,"/",fileName$new),
+                 overwrite = T)
+  # drive_download(as_id(dataSubmit[i,]$答案檔),
+  #               path=
+  #                 paste0(
+  #                   getwd(),
+  #                   str_replace(params$ansDir,".",""),
+  #                   "/",
+  #                   fileName$new
+  #                   ))
+  
+  newNameCollect <- c(newNameCollect, fileName$new)
+  oldNameCollect <- c(oldNameCollect, fileName$old)
+}
+# 確保.Rmd 而非 .rmd .rMd等
+str_replace(newNameCollect,regex("Rmd", ignore_case = T),"Rmd")->newNameCollect
+dataSubmit$新檔名 <- newNameCollect
+dataSubmit$原始檔名 <- oldNameCollect
+
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws="Temp",
+            input=.,
+            col_names = T)
+```
+
+# Rmd檔處理
+
+```{r}
+listOfRmds<-list_files_with_exts(workingPath,"Rmd")
+ansRmds<- listOfRmds %>%
+  str_which("-ans.Rmd") %>%
+  {listOfRmds[.]}
+
+c(paste0(workingPath,"/",newNameCollect),ansRmds) -> okRmds
+
+# 移除不必要的Rmds
+file.remove(setdiff(listOfRmds,okRmds))
+
+# 更新Rmd名單
+listOfRmds<-list_files_with_exts(workingPath,"Rmd")
+
+```
+
+
+## 檢查Encoding
+```{r}
+library(purrr)
+map(listOfRmds,readr::guess_encoding) -> encodingGuess
+map_chr(encodingGuess,function(x) x$encoding[1]) -> encodingList
+
+dataEncoding <- data.frame(
+  Filename = listOfRmds,
+  Encoding = encodingList,
+  stringsAsFactors = F
+)
+
+dataEncoding %>%
+  filter(Encoding != "UTF-8") -> nonUTF8Rmds
+if(nrow(nonUTF8Rmds)!=0){
+  for(i in 1:nrow(nonUTF8Rmds)){
+    #i<-1
+    rawRmd_i<-read_lines(nonUTF8Rmds$Filename[i],locale=locale(encoding=nonUTF8Rmds$Encoding[i]))
+    write_lines(rawRmd_i,path=nonUTF8Rmds$Filename[i])
+  }
+}
+
+## 記錄encoding狀態
+dataEncoding$Filename %>% str_replace(paste0(workingPath,"/"),"") -> 
+  dataEncoding$Filename
+dataSubmit %>% 
+  left_join(dataEncoding,by=c("新檔名"="Filename")) -> dataSubmit
+```
+
+
+# Convert Rmd to R
+
+**purlInfo** shows if a file fails to be purled. 
+
+```{r purl to R files, message=F}
+gsSubmit %>% gs_read(.,ws="Temp") -> dataSubmit
+listOfRmds<-list_files_with_exts(workingPath,"Rmd")
+# 檢查有無存在R檔
+listOfRs<-list_files_with_exts(workingPath,"R")
+if(length(listOfRs)>0){
+  file.remove(listOfRs)
+}
+
+library(knitr)
+fileListPurl <- function(ix){
+  #ix<-1
+  tryCatch({
+    knitr::purl(listOfRmds[ix],output=str_replace(listOfRmds[ix],"Rmd","R"))
+  },
+    error=function(e){
+      print(paste0(listOfRmds[ix]," has problems."))
+    }
+  )
+}
+
+purrr::map(1:length(listOfRmds),fileListPurl) -> purlInfo
+
+# 無法purl 記在dataSubmit$cannotPurl
+purlInfo %>% str_which("has problems") -> cannotPurl_ind
+dataSubmit %>% mutate(cannotPurl=(新檔名 %in% listOfRmds[cannotPurl_ind])) -> dataSubmit
+```
+
+## 增加tryCatch
+
+```{r chunk name locator}
+codeChunkName <- function(codeNameLine){
+  str_split_fixed(codeNameLine,
+                  "## ----",
+                  n=4)[,2]->name2
+  str_split_fixed(name2,"---------------------------------------------------------------",
+                  n=4)[,1]->nameFinal
+  return(nameFinal)
+}
+listOfRs <- list_files_with_exts(workingPath,"R")
+ansR<- listOfRs[str_which(listOfRs,"ans.R")]
+```
+
+## 定義tryCatch學生答案程式檔產生函數
+
+```{r tryCatch appending function}
+appendTryCatch <- function(.x){
+  # .x  the path file to append tryCatch()
+  #.x <- listOfRs[12]
+  #.x <- ansR
+  ## 取得每個chunk名稱
+  originContent <- readLines(.x)
+  
+  ## remove setup chunk
+  originContent %>% str_which("opts_chunk") -> setupLines
+  if(length(setupLines)>0){
+    originContent <- originContent[-setupLines]
+  }
+
+  nLines<-length(originContent)
+  originContent %>% str_which("## ----") -> chunkStartLocs
+  purrr::map_chr(originContent[chunkStartLocs],
+        codeChunkName) -> chunkNameList #取得每個chunk的名稱
+  if(length(str_which(chunkNameList,"ans"))==0){
+    stop("No ans chunk detected")
+  }
+  appendedContent<-originContent[1:chunkStartLocs[1]]
+  
+  chunkStartLocs <- c(chunkStartLocs,nLines+1)
+  dataObjects<-c()
+  for(i in 1:(length(chunkStartLocs)-1)){
+    #i <- 1
+    startLine <- chunkStartLocs[i]+1
+    endLine <- chunkStartLocs[i+1]-1
+    chunkContent<-originContent[startLine:endLine]
+    if(chunkNameList[[i]]==""){
+      appendedContent<-
+        c(
+          appendedContent,
+          "tryCatch({",
+          chunkContent,
+          "},",
+          "error=function(e){},",
+          "warning=function(w){})"
+         )
+    } else if(str_detect(chunkNameList[[i]],"data")==T){
+      ## 資料引入chunk
+      appendedContent<- c(appendedContent,
+                          chunkContent)
+      ## 記錄此chunk的data object
+      dataLines<-chunkContent[str_detect(chunkContent,"<-")]
+      dataObjects<-c(
+        dataObjects,
+        str_split_fixed(dataLines,"<-",n=3)[,1]
+      )
+    } else {
+      appendedContent<-
+        c(
+          appendedContent,
+          "tryCatch({",
+          "eval({",
+          chunkContent,
+          paste0("})->","catchList[['",chunkNameList[i],"']]"),
+          "},",
+          "error=function(e){",
+                    paste0("'Fail'->","catchList[['",chunkNameList[i],"']]"),
+          "},",
+          "warning=function(w){",
+paste0("'Fail'->","catchList[['",chunkNameList[i],"']]"),
+"}",
+          ")"
+         )
+    }
+  }
+  
+  # initiate catchList at top
+  validChunkNames <- chunkNameList[chunkNameList!=""]
+  paste0(validChunkNames,collapse="','")->state1
+  paste0("validChunkNames<-c('",state1,"','name','id')")->state2
+  appendedContent <- c(
+    state2,
+    "catchList <- vector('list',length(validChunkNames))",
+    "names(catchList)<-validChunkNames",
+    appendedContent)
+  
+  # tug name and id at the end
+  appendedContent <- c(appendedContent,
+    "catchList[['name']]<-params$studentName",
+    "catchList[['id']]<-params$studentID")
+  
+  # tug catchList saved in Rda
+  RdaName<-paste0(str_split_fixed(.x,".R",n=2)[,1],".Rda")
+  appendedContent <- c(appendedContent,
+                       "print(length(catchList))",
+                       paste0("save(catchList,file='",RdaName,"')"))
+  
+  #appendedContent <- c("runFun<-function(){",appendedContent)
+  appendedContent <- c(appendedContent,
+                       "rightListLength<-(length(catchList)==length(validChunkNames))",
+                       "catchList<-NULL",
+                       "print(rightListLength)")
+                       #"return(rightListLength)}",
+                       #"valid<-runFun()")
+  
+  
+  # rm list in the front
+  #appendedContent <- c("rm(list=ls())",appendedContent)
+  
+  writeLines(appendedContent,
+             con=.x)
+  return(dataObjects)
+}
+```
+
+
+```{r 增加try catch到R, message=FALSE, error=FALSE}
+
+## 增加tryCatch到R檔
+appendTryCatchHandler<-function(x){
+  tryCatch({
+    appendTryCatch(x)
+  },error=function(e){
+    "Error"
+  },warning=function(w){
+    "Warning"
+  })
+  
+}
+
+purrr::map(listOfRs,appendTryCatchHandler)->outRs
+
+tryCatchProblem<-function(.x) {
+  if(is.null(.x)){
+    FALSE
+  } else if(all(.x=="Error") | all(.x)=="Warning"){
+    TRUE
+  }
+}
+ansLoc<-str_which(listOfRs,"ans.R")
+tryCatchProblem_status<-vector("logical",ansLoc-1)
+for(i in 1:length(outRs[-ansLoc])){
+  tryCatchProblem_status[i]<-tryCatchProblem(outRs[[i]])
+}
+cannotTryCatchR<-listOfRs[which(tryCatchProblem_status)]
+cannotTryCatchR %>% 
+  str_replace(paste0(workingPath,"/"),"") %>%
+  str_replace(".R",".Rmd") -> cannotTryCatchRmd
+dataSubmit %>% 
+  mutate(cannotTryCatch=(新檔名 %in% cannotTryCatchRmd)) -> dataSubmit
+
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws="Temp",
+            input=.,
+            col_names = T)
+```
+
+## 去除資料檔呼叫行
+
+```{r}
+
+markOffItems<- c("gs_")
+
+## markout dataSet import
+ansLoc<-str_which(listOfRs,"ans.R")
+
+outRs[[ansLoc]]->dataObjects
+
+# 要加#號的關鍵物件名稱
+objectsOut<-c(dataObjects,markOffItems)
+listOfRsNoAns<-
+  listOfRs[-ansLoc] %>% # 去掉ans檔
+  {.[!tryCatchProblem_status]} #留下tryCatch沒問題的
+
+markoutDatasetStatus<-vector("logical",length(listOfRsNoAns))
+for(i in 1:length(listOfRsNoAns)){
+  #i<-1
+  originContent <- readLines(listOfRsNoAns[i])
+  tryCatch({
+      lapply(objectsOut,
+         function(x) {
+           loc<-str_which(originContent,x)
+           min(loc)
+         })->dataLines
+      dataLines<-unlist(dataLines)
+      
+      originContent[dataLines]<-
+        str_c("# ",originContent[dataLines])
+      
+      markoutDatasetStatus[i]<-T
+  },
+  error=function(e){
+    markoutDatasetStatus[i]<-F
+  },
+  warning=function(w){
+    markoutDatasetStatus[i]<-F
+  })
+  
+  writeLines(originContent,
+           con=listOfRsNoAns[i])
+}
+```
+
+## 儲存dataObjects狀態
+
+```{r}
+# listOfRsNoAns: 可以run的非ans R
+# ansR: ans R
+save(dataSubmit,listOfRsNoAns,ansR,dataObjects,file=paste0("../",params$hwcode,"/dataSubmitTrack.Rda"))
+```
+
