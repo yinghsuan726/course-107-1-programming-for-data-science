@@ -73,6 +73,7 @@ library(stringr)
 str_sub(studentID$學號,5,6)
 ```
 ```{r}
-
+fruits <- c("one apple", "two pears", "three bananas")
+str_replace(fruits, "b", NA_character_)
 ```
 
