@@ -189,10 +189,28 @@ class(bVector)</code></pre>
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShyZWFkcilcbnN0dWRlbnQgPC0gcmVhZF9jc3YoXCJodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vdHBlbWFydGluL2NvdXJzZS0xMDctMS1wcm9ncmFtbWluZy1mb3ItZGF0YS1zY2llbmNlL21hc3Rlci9kYXRhL3N0dWRlbnQuY3N2XCIpXG5saWJyYXJ5KGRwbHlyKVxubGlicmFyeShtYWdyaXR0cilcbnN0dWRlbnQgJTw+JSBtdXRhdGUoXG4gIOi6q+mrmOe0mui3nT1jdXQo6Lqr6auYLGMoMCwxNTAsMTU1LDE2MCwxNjUsMTcwLDE3NSwxODAsMTg1LDIwMCkpKVxuYGBgIn0= -->
-<pre class="r"><code>library(readr)
-student &lt;- read_csv(&quot;https://raw.githubusercontent.com/tpemartin/course-107-1-programming-for-data-science/master/data/student.csv&quot;)
-library(dplyr)
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShyZWFkcilcbmBgYCJ9 -->
+<pre class="r"><code>library(readr)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZyBtZXNzYWdlOlxuSW4gc3Ryc3BsaXQoY29kZSwgXCJcXG5cIiwgZml4ZWQgPSBUUlVFKSA6XG4gIGlucHV0IHN0cmluZyAxIGlzIGludmFsaWQgaW4gdGhpcyBsb2NhbGVcbiJ9 -->
+<pre><code>Warning message:
+In strsplit(code, &quot;\n&quot;, fixed = TRUE) :
+  input string 1 is invalid in this locale</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3R1ZGVudCA8LSByZWFkX2NzdihcImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS90cGVtYXJ0aW4vY291cnNlLTEwNy0xLXByb2dyYW1taW5nLWZvci1kYXRhLXNjaWVuY2UvbWFzdGVyL2RhdGEvc3R1ZGVudC5jc3ZcIilcbmBgYCJ9 -->
+<pre class="r"><code>student &lt;- read_csv(&quot;https://raw.githubusercontent.com/tpemartin/course-107-1-programming-for-data-science/master/data/student.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUGFyc2VkIHdpdGggY29sdW1uIHNwZWNpZmljYXRpb246XG5jb2xzKFxuICCkSr7Hpn4gPSBjb2xfY2hhcmFjdGVyKCksXG4gIKVYpc2mYSA9IGNvbF9jaGFyYWN0ZXIoKSxcbiAgqcqnTyA9IGNvbF9jaGFyYWN0ZXIoKSxcbiAgqK2wqiA9IGNvbF9kb3VibGUoKVxuKVxuIn0= -->
+<pre><code>Parsed with column specification:
+cols(
+  愼㸴J戼㹥Ǧ~ = col_character(),
+  愼㸵X愼㸵ͦa = col_character(),
+  愼㸹ʧO = col_character(),
+  愼㸸愼㹤戼㸰愼㹡 = col_double()
+)</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShkcGx5cilcbmxpYnJhcnkobWFncml0dHIpXG5zdHVkZW50ICU8PiUgbXV0YXRlKFxuICDouqvpq5jntJrot509Y3V0KOi6q+mrmCxjKDAsMTUwLDE1NSwxNjAsMTY1LDE3MCwxNzUsMTgwLDE4NSwyMDApKSlcbmBgYCJ9 -->
+<pre class="r"><code>library(dplyr)
 library(magrittr)
 student %&lt;&gt;% mutate(
   身高級距=cut(身高,c(0,150,155,160,165,170,175,180,185,200)))</code></pre>
@@ -210,15 +228,308 @@ levels(student$出生地)</code></pre>
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGFibGUoc3R1ZGVudCTlh7rnlJ/lnLApXG5gYGAifQ== -->
 <pre class="r"><code>table(student$出生地)</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgVmlldG5hbSBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgIOS4rSYjMjIyNjk7IFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDEgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg5Lit5ZyLIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDggXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICDkuK3lnIvpppnmuK8gXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMiBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICDkuK3lnIvlu6PmnbHnnIEgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSBcbiAgICAgICAgICAgIOS4reiPr+S6uuawkeWFseWSjOWci+Wxseilv+ecgemBi+WfjuW4giBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIOaXpeacrCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAyIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDliqDmi7/lpKcgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMiBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg5Y+w5Lit5biCIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgODEgXG4gICAgICAgICAgICAgICAgICAgICAgICAgIOWPsOS4reW4guixkOWOn+WNgCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDlj7DkuK3nuKMgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAxNCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDlj7DljJcgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMyBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg5Y+w5YyX5biCIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAyOTUgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIOWPsOWMl+e4oyBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDI1IFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDlj7DmnbHnuKMgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMyBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDlj7DljZcgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMiBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg5Y+w5Y2X5biCIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNDUgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIOWPsOWNl+e4oyBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA4IFxuICAgICAgICAgICAgICAgICAgICAgICAgICDlj7DngaPnnIHmlrDnq7nluIIgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDljbDlsLwgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDlrpzomK0gXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg5a6c6Jit5biCIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDMgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIOWunOiYree4oyBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDE3IFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDoirHok67luIIgXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgMSBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg6Iqx6JOu57ijIFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDMgXG4ifQ== -->
+<pre><code>
+                               Vietnam 
+                                     1 
+                            中&amp;#22269; 
+                                     1 
+                                  中國 
+                                     8 
+                              中國香港 
+                                     2 
+                            中國廣東省 
+                                     1 
+            中華人民共和國山西省運城市 
+                                     1 
+                                  日本 
+                                     2 
+                                加拿大 
+                                     2 
+                                台中市 
+                                    81 
+                          台中市豐原區 
+                                     1 
+                                台中縣 
+                                    14 
+                                  台北 
+                                     3 
+                                台北市 
+                                   295 
+                                台北縣 
+                                    25 
+                                台東縣 
+                                     3 
+                                  台南 
+                                     2 
+                                台南市 
+                                    45 
+                                台南縣 
+                                     8 
+                          台灣省新竹市 
+                                     1 
+                                  印尼 
+                                     1 
+                                  宜蘭 
+                                     1 
+                                宜蘭市 
+                                     3 
+                                宜蘭縣 
+                                    17 
+                                花蓮市 
+                                     1 
+                                花蓮縣 
+                                     3 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZyBtZXNzYWdlOlxuSW4gc3Ryc3BsaXQoY29kZSwgXCJcXG5cIiwgZml4ZWQgPSBUUlVFKSA6IGlucHV0IHN0cmluZyAxIGlzIGludmFsaWQgaW4gdGhpcyBsb2NhbGVcbiJ9 -->
+<pre><code>Warning message:
+In strsplit(code, &quot;\n&quot;, fixed = TRUE) : input string 1 is invalid in this locale</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYXMuZmFjdG9yKHN0dWRlbnQk5oCn5YilKSAtPiBzdHVkZW50JOaAp+WIpVxuYGBgIn0= -->
+<pre class="r"><code>as.factor(student$性別) -&gt; student$性別</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZyBtZXNzYWdlOlxuSW4gc3Ryc3BsaXQoY29kZSwgXCJcXG5cIiwgZml4ZWQgPSBUUlVFKSA6XG4gIGlucHV0IHN0cmluZyAxIGlzIGludmFsaWQgaW4gdGhpcyBsb2NhbGVcbiJ9 -->
+<pre><code>Warning message:
+In strsplit(code, &quot;\n&quot;, fixed = TRUE) :
+  input string 1 is invalid in this locale</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZmFjdG9yKHN0dWRlbnQk6Lqr6auY57Sa6LedLFxuICAgICAgIGxldmVscz1jKFwiKDAsMTUwXVwiLFwiKDE1MCwxNTVdXCIsIFwiKDE1NSwxNjBdXCIsIFwiKDE2MCwxNjVdXCIgLFwiKDE2NSwxNzBdXCIsIFwiKDE3MCwxNzVdXCIgLFwiKDE3NSwxODBdXCIgLFwiKDE4MCwxODVdXCIsIFwiKDE4NSwyMDBdXCIpLFxuICAgICAgIG9yZGVyZWQ9VFJVRSkgLT4gc3R1ZGVudCTouqvpq5jntJrot51cbmBgYCJ9 -->
+<pre class="r"><code>factor(student$身高級距,
+       levels=c(&quot;(0,150]&quot;,&quot;(150,155]&quot;, &quot;(155,160]&quot;, &quot;(160,165]&quot; ,&quot;(165,170]&quot;, &quot;(170,175]&quot; ,&quot;(175,180]&quot; ,&quot;(180,185]&quot;, &quot;(185,200]&quot;),
+       ordered=TRUE) -&gt; student$身高級距</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZyBtZXNzYWdlczpcbjE6IEluIGdyZXBsKFwifHx8XCIsIHdoYXQsIGZpeGVkID0gVFJVRSkgOlxuICBpbnB1dCBzdHJpbmcgMSBpcyBpbnZhbGlkIGluIHRoaXMgbG9jYWxlXG4yOiBJbiBncmVwbChcInx8fFwiLCB3aGF0LCBmaXhlZCA9IFRSVUUpIDpcbiAgaW5wdXQgc3RyaW5nIDEgaXMgaW52YWxpZCBpbiB0aGlzIGxvY2FsZVxuMzogSW4gc3Ryc3BsaXQoY29kZSwgXCJcXG5cIiwgZml4ZWQgPSBUUlVFKSA6XG4gIGlucHV0IHN0cmluZyAxIGlzIGludmFsaWQgaW4gdGhpcyBsb2NhbGVcbiJ9 -->
+<pre><code>Warning messages:
+1: In grepl(&quot;|||&quot;, what, fixed = TRUE) :
+  input string 1 is invalid in this locale
+2: In grepl(&quot;|||&quot;, what, fixed = TRUE) :
+  input string 1 is invalid in this locale
+3: In strsplit(code, &quot;\n&quot;, fixed = TRUE) :
+  input string 1 is invalid in this locale</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3R1ZGVudCTouqvpq5jntJrot51cbmBgYCJ9 -->
+<pre class="r"><code>student$身高級距</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiICAgWzFdICgxNjUsMTcwXSAoMTcwLDE3NV0gKDE2MCwxNjVdICgxNzAsMTc1XSAoMTU1LDE2MF0gKDE1NSwxNjBdXG4gICBbN10gKDE2NSwxNzBdICgxNzAsMTc1XSAoMTc1LDE4MF0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTgwLDE4NV1cbiAgWzEzXSAoMTcwLDE3NV0gKDE3MCwxNzVdICgxNzAsMTc1XSAoMTY1LDE3MF0gKDE2NSwxNzBdICgxNzAsMTc1XVxuICBbMTldICgxNzUsMTgwXSAoMTU1LDE2MF0gKDE3NSwxODBdICgxNjUsMTcwXSAoMTY1LDE3MF0gKDE1NSwxNjBdXG4gIFsyNV0gKDE2MCwxNjVdICgxNjUsMTcwXSAoMTYwLDE2NV0gKDE3MCwxNzVdICgxNjAsMTY1XSAoMTYwLDE2NV1cbiAgWzMxXSAoMTY1LDE3MF0gKDE2MCwxNjVdICgxNTUsMTYwXSAoMTcwLDE3NV0gKDE1MCwxNTVdICgxNzUsMTgwXVxuICBbMzddICgxNTUsMTYwXSAoMTcwLDE3NV0gKDE3MCwxNzVdICgxNTUsMTYwXSAoMTY1LDE3MF0gKDE3NSwxODBdXG4gIFs0M10gKDE3MCwxNzVdICgxNTUsMTYwXSAoMTY1LDE3MF0gKDE2MCwxNjVdICgxNTUsMTYwXSAoMTY1LDE3MF1cbiAgWzQ5XSAoMTc1LDE4MF0gKDE3MCwxNzVdICgxNzAsMTc1XSAoMTU1LDE2MF0gKDE3MCwxNzVdICgxNTAsMTU1XVxuICBbNTVdICgxNTAsMTU1XSAoMTYwLDE2NV0gKDE1NSwxNjBdICgxNjAsMTY1XSAoMTY1LDE3MF0gKDE3MCwxNzVdXG4gIFs2MV0gKDE2NSwxNzBdICgxNTUsMTYwXSAoMTYwLDE2NV0gKDAsMTUwXSAgICgxNTUsMTYwXSAoMTcwLDE3NV1cbiAgWzY3XSAoMTUwLDE1NV0gKDE2NSwxNzBdICgxNTAsMTU1XSAoMTc1LDE4MF0gKDE2MCwxNjVdICgxNTUsMTYwXVxuICBbNzNdICgxODAsMTg1XSAoMTcwLDE3NV0gKDE3MCwxNzVdICgxNjAsMTY1XSAoMTYwLDE2NV0gKDE1MCwxNTVdXG4gIFs3OV0gKDE2MCwxNjVdICgxNzAsMTc1XSAoMTY1LDE3MF0gKDE1NSwxNjBdICgxNjAsMTY1XSAoMTU1LDE2MF1cbiAgWzg1XSAoMTcwLDE3NV0gKDE2NSwxNzBdICgxNTAsMTU1XSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNTUsMTYwXVxuICBbOTFdICgxNjAsMTY1XSAoMTY1LDE3MF0gKDE2MCwxNjVdICgxNzUsMTgwXSAoMTU1LDE2MF0gKDE2NSwxNzBdXG4gIFs5N10gKDE1MCwxNTVdICgxNzUsMTgwXSAoMTU1LDE2MF0gKDE1MCwxNTVdICgxNzAsMTc1XSAoMTY1LDE3MF1cbiBbMTAzXSAoMTU1LDE2MF0gKDE2MCwxNjVdICgxODAsMTg1XSAoMTU1LDE2MF0gKDE3NSwxODBdICgxNzAsMTc1XVxuIFsxMDldICgxODAsMTg1XSAoMTY1LDE3MF0gKDE1MCwxNTVdICgxNTUsMTYwXSAoMTYwLDE2NV0gKDE3NSwxODBdXG4gWzExNV0gKDE3NSwxODBdICgxNzAsMTc1XSAoMTY1LDE3MF0gKDE1NSwxNjBdICgxNzAsMTc1XSAoMTcwLDE3NV1cbiBbMTIxXSAoMTU1LDE2MF0gKDE1NSwxNjBdICgxNjAsMTY1XSAoMTcwLDE3NV0gKDE1NSwxNjBdICgxNzUsMTgwXVxuIFsxMjddICgxNjAsMTY1XSAoMTc1LDE4MF0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTU1LDE2MF0gKDE2NSwxNzBdXG4gWzEzM10gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTUwLDE1NV0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTcwLDE3NV1cbiBbMTM5XSAoMTU1LDE2MF0gKDE2MCwxNjVdICgxNzUsMTgwXSAoMTUwLDE1NV0gKDE2NSwxNzBdICgxNjUsMTcwXVxuIFsxNDVdICgxNzAsMTc1XSAoMTUwLDE1NV0gKDE2NSwxNzBdICgxNzAsMTc1XSAoMTUwLDE1NV0gKDE1MCwxNTVdXG4gWzE1MV0gKDE4MCwxODVdICgxNjUsMTcwXSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNTUsMTYwXSAoMTY1LDE3MF1cbiBbMTU3XSAoMTYwLDE2NV0gKDE2MCwxNjVdICgxNzAsMTc1XSAoMTU1LDE2MF0gKDE2MCwxNjVdICgxNTAsMTU1XVxuIFsxNjNdICgxNTUsMTYwXSAoMTU1LDE2MF0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTUwLDE1NV0gKDE2MCwxNjVdXG4gWzE2OV0gKDE1NSwxNjBdICgxNzAsMTc1XSAoMTY1LDE3MF0gKDE3MCwxNzVdICgxNjUsMTcwXSAoMTU1LDE2MF1cbiBbMTc1XSAoMTgwLDE4NV0gKDE2NSwxNzBdICgxNzUsMTgwXSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNjAsMTY1XVxuIFsxODFdICgxNzUsMTgwXSAoMTU1LDE2MF0gKDE2MCwxNjVdICgxNTAsMTU1XSAoMTcwLDE3NV0gKDE2MCwxNjVdXG4gWzE4N10gKDE2MCwxNjVdICgxNjUsMTcwXSAoMTc1LDE4MF0gKDE2NSwxNzBdICgxNjUsMTcwXSAoMTcwLDE3NV1cbiBbMTkzXSAoMTc1LDE4MF0gKDE4NSwyMDBdICgxNzUsMTgwXSAoMTU1LDE2MF0gKDE1NSwxNjBdICgxNjUsMTcwXVxuIFsxOTldICgxNjUsMTcwXSAoMTU1LDE2MF0gKDE3NSwxODBdICgwLDE1MF0gICAoMTYwLDE2NV0gKDE1NSwxNjBdXG4gWzIwNV0gKDE1NSwxNjBdICgxNjUsMTcwXSAoMTcwLDE3NV0gKDE1NSwxNjBdICgwLDE1MF0gICAoMTYwLDE2NV1cbiBbMjExXSAoMTc1LDE4MF0gKDE2MCwxNjVdICgxNjUsMTcwXSAoMTgwLDE4NV0gKDE2NSwxNzBdICgxNjAsMTY1XVxuIFsyMTddICgxODUsMjAwXSAoMTU1LDE2MF0gKDE3NSwxODBdICgxNzAsMTc1XSAoMTYwLDE2NV0gKDE2MCwxNjVdXG4gWzIyM10gKDE2NSwxNzBdICgxNTUsMTYwXSAoMTY1LDE3MF0gKDE3NSwxODBdICgxNzAsMTc1XSAoMTYwLDE2NV1cbiBbMjI5XSAoMTU1LDE2MF0gKDE1MCwxNTVdICgxNjAsMTY1XSAoMTU1LDE2MF0gKDE1NSwxNjBdICgxNzAsMTc1XVxuIFsyMzVdICgxNjUsMTcwXSAoMTY1LDE3MF0gKDE3NSwxODBdICgxNTAsMTU1XSAoMTYwLDE2NV0gKDE2MCwxNjVdXG4gWzI0MV0gKDE2NSwxNzBdICgxNjUsMTcwXSAoMTcwLDE3NV0gKDE4MCwxODVdICgxNTUsMTYwXSAoMTU1LDE2MF1cbiBbMjQ3XSAoMTU1LDE2MF0gKDE2MCwxNjVdICgxNjAsMTY1XSAoMTU1LDE2MF0gKDE3NSwxODBdICgxNjAsMTY1XVxuIFsyNTNdICgxNjUsMTcwXSAoMTc1LDE4MF0gKDE3MCwxNzVdICgxNzUsMTgwXSAoMTYwLDE2NV0gKDE2MCwxNjVdXG4gWzI1OV0gKDE3NSwxODBdICgxNjUsMTcwXSAoMTU1LDE2MF0gKDE1MCwxNTVdICgxNTAsMTU1XSAoMTgwLDE4NV1cbiBbMjY1XSAoMTc1LDE4MF0gKDE1NSwxNjBdICgxNjUsMTcwXSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNzAsMTc1XVxuIFsyNzFdICgxNTUsMTYwXSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTYwLDE2NV0gKDE3MCwxNzVdXG4gWzI3N10gKDE3NSwxODBdICgxODAsMTg1XSAoMTc1LDE4MF0gKDE3MCwxNzVdICgxNzUsMTgwXSAoMTgwLDE4NV1cbiBbMjgzXSAoMTc1LDE4MF0gKDE1NSwxNjBdICgxNTAsMTU1XSAoMTcwLDE3NV0gKDE1NSwxNjBdICgxODAsMTg1XVxuIFsyODldICgxNjAsMTY1XSAoMTcwLDE3NV0gKDE1NSwxNjBdICgxNjAsMTY1XSAoMTU1LDE2MF0gKDE3MCwxNzVdXG4gWzI5NV0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTUwLDE1NV0gKDE1NSwxNjBdICgxNTUsMTYwXSAoMTU1LDE2MF1cbiBbMzAxXSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTYwLDE2NV0gKDE3MCwxNzVdICgxNjUsMTcwXVxuIFszMDddICgxNTUsMTYwXSAoMTU1LDE2MF0gKDE1MCwxNTVdICgxNTAsMTU1XSAoMTc1LDE4MF0gKDE2NSwxNzBdXG4gWzMxM10gKDE1NSwxNjBdICgxNTUsMTYwXSAoMTY1LDE3MF0gKDE2MCwxNjVdICgxNjUsMTcwXSAoMTU1LDE2MF1cbiBbMzE5XSAoMTUwLDE1NV0gKDE1NSwxNjBdICgxNTUsMTYwXSAoMTYwLDE2NV0gKDE2MCwxNjVdICgxNjUsMTcwXVxuIFszMjVdICgxNjUsMTcwXSAoMTYwLDE2NV0gKDE3MCwxNzVdICgxNzUsMTgwXSAoMTcwLDE3NV0gKDE2MCwxNjVdXG4gWzMzMV0gKDE2NSwxNzBdICgxNzAsMTc1XSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNzAsMTc1XSAoMTY1LDE3MF1cbiBbMzM3XSAoMTc1LDE4MF0gKDE1NSwxNjBdICgxNzUsMTgwXSAoMTcwLDE3NV0gKDE1NSwxNjBdICgxNjAsMTY1XVxuIFszNDNdICgxNzAsMTc1XSAoMTcwLDE3NV0gKDAsMTUwXSAgICgxNjAsMTY1XSAoMTYwLDE2NV0gKDE2MCwxNjVdXG4gWzM0OV0gKDE2NSwxNzBdICgxNjUsMTcwXSAoMTU1LDE2MF0gKDE1NSwxNjBdICgxNjAsMTY1XSAoMTU1LDE2MF1cbiBbMzU1XSAoMTU1LDE2MF0gKDE1NSwxNjBdICgxNjUsMTcwXSAoMTgwLDE4NV0gKDE3NSwxODBdICgxNzAsMTc1XVxuIFszNjFdICgxNTUsMTYwXSAoMTUwLDE1NV0gKDE2NSwxNzBdICgxNTUsMTYwXSAoMTc1LDE4MF0gKDE3NSwxODBdXG4gWzM2N10gKDE3NSwxODBdICgxODUsMjAwXSAoMTcwLDE3NV0gKDE1NSwxNjBdICgxNTUsMTYwXSAoMTc1LDE4MF1cbiBbMzczXSAoMTc1LDE4MF0gKDE2MCwxNjVdICgxNzAsMTc1XSAoMTU1LDE2MF0gKDE1MCwxNTVdICgxNTUsMTYwXVxuIFszNzldICgxNTAsMTU1XSAoMCwxNTBdICAgKDE3MCwxNzVdICgxNjUsMTcwXSAoMTY1LDE3MF0gKDE2MCwxNjVdXG4gWzM4NV0gKDE2MCwxNjVdICgxNTUsMTYwXSAoMTYwLDE2NV0gKDE1NSwxNjBdICgxNzAsMTc1XSAoMCwxNTBdICBcbiBbMzkxXSAoMTY1LDE3MF0gKDE4NSwyMDBdICgxNjUsMTcwXSAoMTU1LDE2MF0gKDE2MCwxNjVdICgxNjUsMTcwXVxuIFszOTddICgxNjAsMTY1XSAoMTc1LDE4MF0gKDE3NSwxODBdICgxNjUsMTcwXSAoMTcwLDE3NV0gKDE2MCwxNjVdXG4gWzQwM10gKDE4MCwxODVdICgxODAsMTg1XSAoMTYwLDE2NV0gKDE3NSwxODBdICgxNzUsMTgwXSAoMTY1LDE3MF1cbiBbNDA5XSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNzAsMTc1XSAoMTgwLDE4NV0gKDE3NSwxODBdICgxNzUsMTgwXVxuIFs0MTVdICgxNzUsMTgwXSAoMTcwLDE3NV0gKDE1NSwxNjBdICgxNzUsMTgwXSAoMTYwLDE2NV0gKDE4MCwxODVdXG4gWzQyMV0gKDE3MCwxNzVdICgxNjUsMTcwXSAoMTYwLDE2NV0gKDE1NSwxNjBdICgxNTUsMTYwXSAoMTYwLDE2NV1cbiBbNDI3XSAoMCwxNTBdICAgKDE2MCwxNjVdICgxNjUsMTcwXSAoMTUwLDE1NV0gKDE1NSwxNjBdICgxNzUsMTgwXVxuIFs0MzNdICgxNzUsMTgwXSAoMTU1LDE2MF0gKDE2MCwxNjVdICgxNjUsMTcwXSAoMTgwLDE4NV0gKDE2MCwxNjVdXG4gWzQzOV0gKDE1NSwxNjBdICgxNzAsMTc1XSAoMTU1LDE2MF0gKDE1NSwxNjBdICgxNjUsMTcwXSAoMTU1LDE2MF1cbiBbNDQ1XSAoMTc1LDE4MF0gKDE2NSwxNzBdICgxNzAsMTc1XSAoMTYwLDE2NV0gKDE1NSwxNjBdICgxNjUsMTcwXVxuIFs0NTFdICgxNTAsMTU1XSAoMTU1LDE2MF0gKDE1NSwxNjBdICgxNjUsMTcwXSAoMTUwLDE1NV0gKDE1NSwxNjBdXG4gWzQ1N10gKDE2MCwxNjVdICgxODAsMTg1XSAoMTY1LDE3MF0gKDE3NSwxODBdICgxNjAsMTY1XSAoMTc1LDE4MF1cbiBbNDYzXSAoMTcwLDE3NV0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTc1LDE4MF0gKDE3MCwxNzVdICgxNzAsMTc1XVxuIFs0NjldICgxNjUsMTcwXSAoMTU1LDE2MF0gKDE2MCwxNjVdICgxNTUsMTYwXSAoMTY1LDE3MF0gKDE1NSwxNjBdXG4gWzQ3NV0gKDE2NSwxNzBdICgxNzAsMTc1XSAoMTYwLDE2NV0gKDE2MCwxNjVdICgxNjAsMTY1XSAoMTYwLDE2NV1cbiBbNDgxXSAoMTY1LDE3MF0gKDE2MCwxNjVdICgxNTAsMTU1XSAoMTYwLDE2NV0gKDE1MCwxNTVdICgxNzAsMTc1XVxuIFs0ODddICgxNjUsMTcwXSAoMTc1LDE4MF0gKDE3NSwxODBdICgxNzAsMTc1XSAoMTYwLDE2NV0gKDE3NSwxODBdXG4gWzQ5M10gKDE3MCwxNzVdICgxNzAsMTc1XSAoMTgwLDE4NV0gKDE1MCwxNTVdICgxODAsMTg1XSAoMTcwLDE3NV1cbiBbNDk5XSAoMTU1LDE2MF0gKDE3MCwxNzVdICgxNjUsMTcwXSAoMTU1LDE2MF0gKDE3MCwxNzVdICgxNTUsMTYwXVxuIFs1MDVdICgxNjAsMTY1XSAoMTY1LDE3MF0gKDE2NSwxNzBdICgxNTUsMTYwXSAoMTc1LDE4MF0gKDAsMTUwXSAgXG4gWzUxMV0gKDE2NSwxNzBdICgxNTAsMTU1XSAoMTYwLDE2NV0gKDE2MCwxNjVdICgxNTAsMTU1XSAoMTYwLDE2NV1cbiBbNTE3XSAoMTUwLDE1NV0gKDE3MCwxNzVdICgxNTUsMTYwXSAoMTYwLDE2NV0gKDAsMTUwXSAgICgxNzUsMTgwXVxuIFs1MjNdICgwLDE1MF0gICAoMTcwLDE3NV0gKDAsMTUwXSAgICgwLDE1MF0gICAoMTYwLDE2NV0gKDE2MCwxNjVdXG4gWzUyOV0gKDE1NSwxNjBdICgxNjAsMTY1XSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTU1LDE2MF1cbiBbNTM1XSAoMTY1LDE3MF0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTY1LDE3MF0gKDE3MCwxNzVdICgxNjAsMTY1XVxuIFs1NDFdICgxNjUsMTcwXSAoMTYwLDE2NV0gKDE2NSwxNzBdICgxNTUsMTYwXSAoMTc1LDE4MF0gKDE4MCwxODVdXG4gWzU0N10gKDE2NSwxNzBdICgxNjUsMTcwXSAoMTY1LDE3MF0gKDE3MCwxNzVdICgxNzAsMTc1XSAoMTYwLDE2NV1cbiBbNTUzXSAoMTU1LDE2MF0gKDE2NSwxNzBdICgxNzUsMTgwXSAoMTY1LDE3MF0gKDE3NSwxODBdICgxNTAsMTU1XVxuIFs1NTldICgxNTUsMTYwXSAoMTY1LDE3MF0gKDE3MCwxNzVdICgxODAsMTg1XSAoMTYwLDE2NV0gKDE2MCwxNjVdXG4gWzU2NV0gKDE4MCwxODVdICgxNTAsMTU1XSAoMTc1LDE4MF0gKDE2MCwxNjVdICgxNTUsMTYwXSAoMTUwLDE1NV1cbiBbNTcxXSAoMTUwLDE1NV0gKDE2MCwxNjVdICgxNTUsMTYwXSAoMTY1LDE3MF0gKDE1NSwxNjBdICgxNTUsMTYwXVxuIFs1NzddICgxNTUsMTYwXSAoMTUwLDE1NV0gKDE2MCwxNjVdICgxNTUsMTYwXSAoMTcwLDE3NV0gKDE1NSwxNjBdXG4gWzU4M10gKDE2NSwxNzBdICgxNjUsMTcwXSAoMTUwLDE1NV0gKDE2MCwxNjVdICgxNjUsMTcwXSAoMTc1LDE4MF1cbiBbNTg5XSAoMTcwLDE3NV0gKDE1MCwxNTVdICgxNjUsMTcwXSAoMTYwLDE2NV0gKDE1NSwxNjBdICgxNjAsMTY1XVxuIFs1OTVdICgxNjAsMTY1XSAoMTY1LDE3MF0gKDE3MCwxNzVdICgxNzUsMTgwXSAoMTUwLDE1NV0gKDE2MCwxNjVdXG4gWzYwMV0gKDE2NSwxNzBdICgxNzUsMTgwXSAoMTYwLDE2NV0gKDE1NSwxNjBdICgxNjAsMTY1XSAoMTgwLDE4NV1cbiBbNjA3XSAoMTg1LDIwMF0gKDE3MCwxNzVdICgxNzUsMTgwXSAoMTYwLDE2NV0gKDE3NSwxODBdICgxODUsMjAwXVxuIFs2MTNdICgxNjAsMTY1XSAoMTc1LDE4MF0gKDE2NSwxNzBdICgxNzUsMTgwXSAoMTYwLDE2NV0gKDE2MCwxNjVdXG4gWzYxOV0gKDE2NSwxNzBdICgxNTUsMTYwXSAoMTU1LDE2MF0gKDE2NSwxNzBdICgxNjAsMTY1XSAoMTU1LDE2MF1cbiBbNjI1XSAoMTY1LDE3MF0gKDE3MCwxNzVdICgxNTUsMTYwXSAoMTY1LDE3MF0gKDE2MCwxNjVdXG4ifQ== -->
+<pre><code>   [1] (165,170] (170,175] (160,165] (170,175] (155,160] (155,160]
+   [7] (165,170] (170,175] (175,180] (165,170] (160,165] (180,185]
+  [13] (170,175] (170,175] (170,175] (165,170] (165,170] (170,175]
+  [19] (175,180] (155,160] (175,180] (165,170] (165,170] (155,160]
+  [25] (160,165] (165,170] (160,165] (170,175] (160,165] (160,165]
+  [31] (165,170] (160,165] (155,160] (170,175] (150,155] (175,180]
+  [37] (155,160] (170,175] (170,175] (155,160] (165,170] (175,180]
+  [43] (170,175] (155,160] (165,170] (160,165] (155,160] (165,170]
+  [49] (175,180] (170,175] (170,175] (155,160] (170,175] (150,155]
+  [55] (150,155] (160,165] (155,160] (160,165] (165,170] (170,175]
+  [61] (165,170] (155,160] (160,165] (0,150]   (155,160] (170,175]
+  [67] (150,155] (165,170] (150,155] (175,180] (160,165] (155,160]
+  [73] (180,185] (170,175] (170,175] (160,165] (160,165] (150,155]
+  [79] (160,165] (170,175] (165,170] (155,160] (160,165] (155,160]
+  [85] (170,175] (165,170] (150,155] (160,165] (165,170] (155,160]
+  [91] (160,165] (165,170] (160,165] (175,180] (155,160] (165,170]
+  [97] (150,155] (175,180] (155,160] (150,155] (170,175] (165,170]
+ [103] (155,160] (160,165] (180,185] (155,160] (175,180] (170,175]
+ [109] (180,185] (165,170] (150,155] (155,160] (160,165] (175,180]
+ [115] (175,180] (170,175] (165,170] (155,160] (170,175] (170,175]
+ [121] (155,160] (155,160] (160,165] (170,175] (155,160] (175,180]
+ [127] (160,165] (175,180] (165,170] (160,165] (155,160] (165,170]
+ [133] (165,170] (160,165] (150,155] (165,170] (160,165] (170,175]
+ [139] (155,160] (160,165] (175,180] (150,155] (165,170] (165,170]
+ [145] (170,175] (150,155] (165,170] (170,175] (150,155] (150,155]
+ [151] (180,185] (165,170] (160,165] (165,170] (155,160] (165,170]
+ [157] (160,165] (160,165] (170,175] (155,160] (160,165] (150,155]
+ [163] (155,160] (155,160] (165,170] (160,165] (150,155] (160,165]
+ [169] (155,160] (170,175] (165,170] (170,175] (165,170] (155,160]
+ [175] (180,185] (165,170] (175,180] (160,165] (165,170] (160,165]
+ [181] (175,180] (155,160] (160,165] (150,155] (170,175] (160,165]
+ [187] (160,165] (165,170] (175,180] (165,170] (165,170] (170,175]
+ [193] (175,180] (185,200] (175,180] (155,160] (155,160] (165,170]
+ [199] (165,170] (155,160] (175,180] (0,150]   (160,165] (155,160]
+ [205] (155,160] (165,170] (170,175] (155,160] (0,150]   (160,165]
+ [211] (175,180] (160,165] (165,170] (180,185] (165,170] (160,165]
+ [217] (185,200] (155,160] (175,180] (170,175] (160,165] (160,165]
+ [223] (165,170] (155,160] (165,170] (175,180] (170,175] (160,165]
+ [229] (155,160] (150,155] (160,165] (155,160] (155,160] (170,175]
+ [235] (165,170] (165,170] (175,180] (150,155] (160,165] (160,165]
+ [241] (165,170] (165,170] (170,175] (180,185] (155,160] (155,160]
+ [247] (155,160] (160,165] (160,165] (155,160] (175,180] (160,165]
+ [253] (165,170] (175,180] (170,175] (175,180] (160,165] (160,165]
+ [259] (175,180] (165,170] (155,160] (150,155] (150,155] (180,185]
+ [265] (175,180] (155,160] (165,170] (160,165] (165,170] (170,175]
+ [271] (155,160] (160,165] (165,170] (160,165] (160,165] (170,175]
+ [277] (175,180] (180,185] (175,180] (170,175] (175,180] (180,185]
+ [283] (175,180] (155,160] (150,155] (170,175] (155,160] (180,185]
+ [289] (160,165] (170,175] (155,160] (160,165] (155,160] (170,175]
+ [295] (165,170] (160,165] (150,155] (155,160] (155,160] (155,160]
+ [301] (160,165] (165,170] (160,165] (160,165] (170,175] (165,170]
+ [307] (155,160] (155,160] (150,155] (150,155] (175,180] (165,170]
+ [313] (155,160] (155,160] (165,170] (160,165] (165,170] (155,160]
+ [319] (150,155] (155,160] (155,160] (160,165] (160,165] (165,170]
+ [325] (165,170] (160,165] (170,175] (175,180] (170,175] (160,165]
+ [331] (165,170] (170,175] (160,165] (165,170] (170,175] (165,170]
+ [337] (175,180] (155,160] (175,180] (170,175] (155,160] (160,165]
+ [343] (170,175] (170,175] (0,150]   (160,165] (160,165] (160,165]
+ [349] (165,170] (165,170] (155,160] (155,160] (160,165] (155,160]
+ [355] (155,160] (155,160] (165,170] (180,185] (175,180] (170,175]
+ [361] (155,160] (150,155] (165,170] (155,160] (175,180] (175,180]
+ [367] (175,180] (185,200] (170,175] (155,160] (155,160] (175,180]
+ [373] (175,180] (160,165] (170,175] (155,160] (150,155] (155,160]
+ [379] (150,155] (0,150]   (170,175] (165,170] (165,170] (160,165]
+ [385] (160,165] (155,160] (160,165] (155,160] (170,175] (0,150]  
+ [391] (165,170] (185,200] (165,170] (155,160] (160,165] (165,170]
+ [397] (160,165] (175,180] (175,180] (165,170] (170,175] (160,165]
+ [403] (180,185] (180,185] (160,165] (175,180] (175,180] (165,170]
+ [409] (160,165] (165,170] (170,175] (180,185] (175,180] (175,180]
+ [415] (175,180] (170,175] (155,160] (175,180] (160,165] (180,185]
+ [421] (170,175] (165,170] (160,165] (155,160] (155,160] (160,165]
+ [427] (0,150]   (160,165] (165,170] (150,155] (155,160] (175,180]
+ [433] (175,180] (155,160] (160,165] (165,170] (180,185] (160,165]
+ [439] (155,160] (170,175] (155,160] (155,160] (165,170] (155,160]
+ [445] (175,180] (165,170] (170,175] (160,165] (155,160] (165,170]
+ [451] (150,155] (155,160] (155,160] (165,170] (150,155] (155,160]
+ [457] (160,165] (180,185] (165,170] (175,180] (160,165] (175,180]
+ [463] (170,175] (165,170] (160,165] (175,180] (170,175] (170,175]
+ [469] (165,170] (155,160] (160,165] (155,160] (165,170] (155,160]
+ [475] (165,170] (170,175] (160,165] (160,165] (160,165] (160,165]
+ [481] (165,170] (160,165] (150,155] (160,165] (150,155] (170,175]
+ [487] (165,170] (175,180] (175,180] (170,175] (160,165] (175,180]
+ [493] (170,175] (170,175] (180,185] (150,155] (180,185] (170,175]
+ [499] (155,160] (170,175] (165,170] (155,160] (170,175] (155,160]
+ [505] (160,165] (165,170] (165,170] (155,160] (175,180] (0,150]  
+ [511] (165,170] (150,155] (160,165] (160,165] (150,155] (160,165]
+ [517] (150,155] (170,175] (155,160] (160,165] (0,150]   (175,180]
+ [523] (0,150]   (170,175] (0,150]   (0,150]   (160,165] (160,165]
+ [529] (155,160] (160,165] (160,165] (165,170] (160,165] (155,160]
+ [535] (165,170] (165,170] (160,165] (165,170] (170,175] (160,165]
+ [541] (165,170] (160,165] (165,170] (155,160] (175,180] (180,185]
+ [547] (165,170] (165,170] (165,170] (170,175] (170,175] (160,165]
+ [553] (155,160] (165,170] (175,180] (165,170] (175,180] (150,155]
+ [559] (155,160] (165,170] (170,175] (180,185] (160,165] (160,165]
+ [565] (180,185] (150,155] (175,180] (160,165] (155,160] (150,155]
+ [571] (150,155] (160,165] (155,160] (165,170] (155,160] (155,160]
+ [577] (155,160] (150,155] (160,165] (155,160] (170,175] (155,160]
+ [583] (165,170] (165,170] (150,155] (160,165] (165,170] (175,180]
+ [589] (170,175] (150,155] (165,170] (160,165] (155,160] (160,165]
+ [595] (160,165] (165,170] (170,175] (175,180] (150,155] (160,165]
+ [601] (165,170] (175,180] (160,165] (155,160] (160,165] (180,185]
+ [607] (185,200] (170,175] (175,180] (160,165] (175,180] (185,200]
+ [613] (160,165] (175,180] (165,170] (175,180] (160,165] (160,165]
+ [619] (165,170] (155,160] (155,160] (165,170] (160,165] (155,160]
+ [625] (165,170] (170,175] (155,160] (165,170] (160,165]</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaGVpZ2h0TGV2ZWxzPC1jKFwiKDAsMTUwXVwiLFwiKDE1MCwxNTVdXCIsIFwiKDE1NSwxNjBdXCIsIFwiKDE2MCwxNjVdXCIgLFwiKDE2NSwxNzBdXCIsIFwiKDE3MCwxNzVdXCIgLFwiKDE3NSwxODBdXCIgLFwiKDE4MCwxODVdXCIsIFwiKDE4NSwyMDBdXCIpLT5oZWlnaHRMZXZlbHNcbmhlaWdodExldmVscyRjXG5gYGAifQ== -->
+<pre class="r"><code>heightLevels&lt;-c(&quot;(0,150]&quot;,&quot;(150,155]&quot;, &quot;(155,160]&quot;, &quot;(160,165]&quot; ,&quot;(165,170]&quot;, &quot;(170,175]&quot; ,&quot;(175,180]&quot; ,&quot;(180,185]&quot;, &quot;(185,200]&quot;)-&gt;heightLevels
+heightLevels$c</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gaGVpZ2h0TGV2ZWxzJGMgOiAkIG9wZXJhdG9yIGlzIGludmFsaWQgZm9yIGF0b21pYyB2ZWN0b3JzXG4ifQ== -->
+<pre><code>Error in heightLevels$c : $ operator is invalid for atomic vectors</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaGVpZ2h0TGV2ZWxzIDwtIGMoXCIoMCwxNTBdXCIsXCIoMTUwLDE1NV1cIiwgXCIoMTU1LDE2MF1cIiwgXCIoMTYwLDE2NV1cIiAsXCIoMTY1LDE3MF1cIiwgXCIoMTcwLDE3NV1cIiAsXCIoMTc1LDE4MF1cIiAsXCIoMTgwLDE4NV1cIiwgXCIoMTg1LDIwMF1cIilcbmBgYCJ9 -->
+<pre class="r"><code>heightLevels &lt;- c(&quot;(0,150]&quot;,&quot;(150,155]&quot;, &quot;(155,160]&quot;, &quot;(160,165]&quot; ,&quot;(165,170]&quot;, &quot;(170,175]&quot; ,&quot;(175,180]&quot; ,&quot;(180,185]&quot;, &quot;(185,200]&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZyBtZXNzYWdlOlxuSW4gc3Ryc3BsaXQoY29kZSwgXCJcXG5cIiwgZml4ZWQgPSBUUlVFKSA6XG4gIGlucHV0IHN0cmluZyAxIGlzIGludmFsaWQgaW4gdGhpcyBsb2NhbGVcbiJ9 -->
+<pre><code>Warning message:
+In strsplit(code, &quot;\n&quot;, fixed = TRUE) :
+  input string 1 is invalid in this locale</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZmFjdG9yKHN0dWRlbnQk6Lqr6auY57Sa6LedLFxuICAgICAgIGxldmVscz1oZWlnaHRMZXZlbHMsXG4gICAgICAgb3JkZXJlZD1UUlVFKSAtPiBzdHVkZW50JOi6q+mrmOe0mui3nVxuYGBgIn0= -->
+<pre class="r"><code>factor(student$身高級距,
+       levels=heightLevels,
+       ordered=TRUE) -&gt; student$身高級距</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShkcGx5cilcbmxpYnJhcnkobHVicmlkYXRlKVxuYTwtU3lzLnRpbWV6b25lKClcbmFcbmBgYCJ9 -->
+<pre class="r"><code>library(dplyr)
+library(lubridate)
+a&lt;-Sys.timezone()
+a</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwiQXNpYS9UYWlwZWlcIlxuIn0= -->
+<pre><code>[1] &quot;Asia/Taipei&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShsdWJyaWRhdGUpXG5hIDwtIHltZChcIjIwMTctMDEtMzFcIikgXG5iIDwtIHltZF9obXMoXCIyMDE3LTAxLTMxIDIwOjExOjU5XCIpXG5hXG5gYGAifQ== -->
+<pre class="r"><code>library(lubridate)
+a &lt;- ymd(&quot;2017-01-31&quot;) 
+b &lt;- ymd_hms(&quot;2017-01-31 20:11:59&quot;)
+a</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwiMjAxNy0wMS0zMVwiXG4ifQ== -->
+<pre><code>[1] &quot;2017-01-31&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShkcGx5cilcbmxpYnJhcnkobHVicmlkYXRlKVxuYTwteW1kKDAzMDExOSAgKVxuYVxuYGBgIn0= -->
+<pre class="r"><code>library(dplyr)
+library(lubridate)
+a&lt;-ymd(030119  )
+a</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwiMjAwMy0wMS0xOVwiXG4ifQ== -->
+<pre><code>[1] &quot;2003-01-19&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubHVicmlkYXRlOjp5bWQoMTMwMTAxKS0+YVxuYVxuYGBgIn0= -->
+<pre class="r"><code>lubridate::ymd(130101)-&gt;a
+a</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwiMjAxMy0wMS0wMVwiXG4ifQ== -->
+<pre><code>[1] &quot;2013-01-01&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc3R1ZGVudElEIDwtIHJlYWRfY3N2KFwiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3RwZW1hcnRpbi9naXRodWItZGF0YS9tYXN0ZXIvc3R1ZGVudElELmNzdlwiKVxuYGBgIn0= -->
+<pre class="r"><code>studentID &lt;- read_csv(&quot;https://raw.githubusercontent.com/tpemartin/github-data/master/studentID.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiUGFyc2VkIHdpdGggY29sdW1uIHNwZWNpZmljYXRpb246XG5jb2xzKFxuICC+x7i5ID0gY29sX2ludGVnZXIoKVxuKVxuV2FybmluZyBtZXNzYWdlczpcbjE6IEluIGdyZXBsKFwifHx8XCIsIHdoYXQsIGZpeGVkID0gVFJVRSkgOlxuICBpbnB1dCBzdHJpbmcgMSBpcyBpbnZhbGlkIGluIHRoaXMgbG9jYWxlXG4yOiBJbiBzdHJzcGxpdChjb2RlLCBcIlxcblwiLCBmaXhlZCA9IFRSVUUpIDpcbiAgaW5wdXQgc3RyaW5nIDEgaXMgaW52YWxpZCBpbiB0aGlzIGxvY2FsZVxuIn0= -->
+<pre><code>Parsed with column specification:
+cols(
+  戼㹥Ǹ戼㸹 = col_integer()
+)
+Warning messages:
+1: In grepl(&quot;|||&quot;, what, fixed = TRUE) :
+  input string 1 is invalid in this locale
+2: In strsplit(code, &quot;\n&quot;, fixed = TRUE) :
+  input string 1 is invalid in this locale</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShzdHJpbmdyKVxuc3RyX3N1YihzdHVkZW50SUQk5a246JmfLDUsNilcbmBgYCJ9 -->
+<pre class="r"><code>library(stringr)
+str_sub(studentID$學號,5,6)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiIFsxXSBcIjc3XCIgXCI3NlwiIFwiNzRcIiBcIjc3XCIgXCI4MlwiIFwiNzZcIiBcIjc0XCIgXCI3N1wiIFwiODFcIiBcIjc3XCIgXCI4MFwiIFwiNzlcIiBcIjc2XCJcblsxNF0gXCI3MVwiIFwiNzRcIiBcIjc3XCIgXCI4MFwiIFwiNzRcIiBcIjc3XCIgXCI3NlwiIFwiNzdcIiBcIjc5XCIgXCI3OVwiIFwiODBcIiBcIjc0XCIgXCI3NFwiXG5bMjddIFwiNzlcIiBcIjc2XCIgXCI4MFwiIFwiNzRcIiBcIjc2XCIgXCI3NFwiIFwiNzdcIiBcIjc5XCIgXCI4MVwiIFwiOTFcIiBcIjc2XCIgXCI3N1wiIFwiNzdcIlxuWzQwXSBcIjgyXCIgXCI3OVwiIFwiNzZcIiBcIjc5XCIgXCI4MlwiIFwiODJcIiBcIjc2XCIgXCI4MVwiIFwiNzlcIiBcIjc0XCIgXCI3NlwiIFwiODJcIiBcIjc2XCJcbls1M10gXCI4MlwiIFwiODJcIiBcIjgxXCIgXCI4MFwiIFwiODFcIiBcIjgwXCIgXCI4MlwiIFwiODJcIiBcIjc3XCIgXCI3N1wiIFwiNzZcIiBcIjc0XCIgXCI3NlwiXG5bNjZdIFwiNzZcIiBcIjc5XCIgXCI4MlwiIFwiNzZcIiBcIjgwXCIgXCI3NlwiIFwiNzRcIiBcIjgyXCIgXCI3OVwiIFwiODFcIiBcIjc5XCIgXCI3NFwiIFwiODJcIlxuWzc5XSBcIjc3XCIgXCI3NlwiIFwiODNcIiBcIjc3XCIgXCI3OVwiIFwiODFcIiBcIjc5XCIgXCI3OVwiIFwiODJcIiBcIjc5XCIgXCI3OVwiIFwiNzlcIiBcIjc2XCJcbls5Ml0gXCI3NlwiIFwiNzZcIiBcIjc3XCIgXCI3OVwiXG4ifQ== -->
+<pre><code> [1] &quot;77&quot; &quot;76&quot; &quot;74&quot; &quot;77&quot; &quot;82&quot; &quot;76&quot; &quot;74&quot; &quot;77&quot; &quot;81&quot; &quot;77&quot; &quot;80&quot; &quot;79&quot; &quot;76&quot;
+[14] &quot;71&quot; &quot;74&quot; &quot;77&quot; &quot;80&quot; &quot;74&quot; &quot;77&quot; &quot;76&quot; &quot;77&quot; &quot;79&quot; &quot;79&quot; &quot;80&quot; &quot;74&quot; &quot;74&quot;
+[27] &quot;79&quot; &quot;76&quot; &quot;80&quot; &quot;74&quot; &quot;76&quot; &quot;74&quot; &quot;77&quot; &quot;79&quot; &quot;81&quot; &quot;91&quot; &quot;76&quot; &quot;77&quot; &quot;77&quot;
+[40] &quot;82&quot; &quot;79&quot; &quot;76&quot; &quot;79&quot; &quot;82&quot; &quot;82&quot; &quot;76&quot; &quot;81&quot; &quot;79&quot; &quot;74&quot; &quot;76&quot; &quot;82&quot; &quot;76&quot;
+[53] &quot;82&quot; &quot;82&quot; &quot;81&quot; &quot;80&quot; &quot;81&quot; &quot;80&quot; &quot;82&quot; &quot;82&quot; &quot;77&quot; &quot;77&quot; &quot;76&quot; &quot;74&quot; &quot;76&quot;
+[66] &quot;76&quot; &quot;79&quot; &quot;82&quot; &quot;76&quot; &quot;80&quot; &quot;76&quot; &quot;74&quot; &quot;82&quot; &quot;79&quot; &quot;81&quot; &quot;79&quot; &quot;74&quot; &quot;82&quot;
+[79] &quot;77&quot; &quot;76&quot; &quot;83&quot; &quot;77&quot; &quot;79&quot; &quot;81&quot; &quot;79&quot; &quot;79&quot; &quot;82&quot; &quot;79&quot; &quot;79&quot; &quot;79&quot; &quot;76&quot;
+[92] &quot;76&quot; &quot;76&quot; &quot;77&quot; &quot;79&quot;</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogInByYWN0aWNlIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQotLS0NCg0KYGBge3J9DQpiVmVjdG9yPC1jKCLkvaDlpb0iLCJIb3cgYXJlIHlvdT8iKQ0KY2xhc3MoYlZlY3RvcikNCmBgYA0KDQpgYGB7cn0NCmxpYnJhcnkocmVhZHIpDQpzdHVkZW50IDwtIHJlYWRfY3N2KCJodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vdHBlbWFydGluL2NvdXJzZS0xMDctMS1wcm9ncmFtbWluZy1mb3ItZGF0YS1zY2llbmNlL21hc3Rlci9kYXRhL3N0dWRlbnQuY3N2IikNCmxpYnJhcnkoZHBseXIpDQpsaWJyYXJ5KG1hZ3JpdHRyKQ0Kc3R1ZGVudCAlPD4lIG11dGF0ZSgNCiAg6Lqr6auY57Sa6LedPWN1dCjouqvpq5gsYygwLDE1MCwxNTUsMTYwLDE2NSwxNzAsMTc1LDE4MCwxODUsMjAwKSkpDQpgYGANCg0KYGBge3J9DQphcy5mYWN0b3Ioc3R1ZGVudCTlh7rnlJ/lnLApIC0+IHN0dWRlbnQk5Ye655Sf5ZywDQpsZXZlbHMoc3R1ZGVudCTlh7rnlJ/lnLApDQpgYGANCmBgYHtyfQ0KdGFibGUoc3R1ZGVudCTlh7rnlJ/lnLApDQpgYGANCg0KYGBge3J9DQoNCmBgYA0KDQo=</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogInByYWN0aWNlIg0Kb3V0cHV0OiBodG1sX25vdGVib29rDQotLS0NCg0KYGBge3J9DQpiVmVjdG9yPC1jKCLkvaDlpb0iLCJIb3cgYXJlIHlvdT8iKQ0KY2xhc3MoYlZlY3RvcikNCmBgYA0KDQpgYGB7cn0NCmxpYnJhcnkocmVhZHIpDQpzdHVkZW50IDwtIHJlYWRfY3N2KCJodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vdHBlbWFydGluL2NvdXJzZS0xMDctMS1wcm9ncmFtbWluZy1mb3ItZGF0YS1zY2llbmNlL21hc3Rlci9kYXRhL3N0dWRlbnQuY3N2IikNCmxpYnJhcnkoZHBseXIpDQpsaWJyYXJ5KG1hZ3JpdHRyKQ0Kc3R1ZGVudCAlPD4lIG11dGF0ZSgNCiAg6Lqr6auY57Sa6LedPWN1dCjouqvpq5gsYygwLDE1MCwxNTUsMTYwLDE2NSwxNzAsMTc1LDE4MCwxODUsMjAwKSkpDQpgYGANCg0KYGBge3J9DQphcy5mYWN0b3Ioc3R1ZGVudCTlh7rnlJ/lnLApIC0+IHN0dWRlbnQk5Ye655Sf5ZywDQpsZXZlbHMoc3R1ZGVudCTlh7rnlJ/lnLApDQpgYGANCmBgYHtyfQ0KdGFibGUoc3R1ZGVudCTlh7rnlJ/lnLApDQpgYGANCg0KYGBge3J9DQphcy5mYWN0b3Ioc3R1ZGVudCTmgKfliKUpIC0+IHN0dWRlbnQk5oCn5YilDQpgYGANCmBgYHtyfQ0KZmFjdG9yKHN0dWRlbnQk6Lqr6auY57Sa6LedLA0KICAgICAgIGxldmVscz1jKCIoMCwxNTBdIiwiKDE1MCwxNTVdIiwgIigxNTUsMTYwXSIsICIoMTYwLDE2NV0iICwiKDE2NSwxNzBdIiwgIigxNzAsMTc1XSIgLCIoMTc1LDE4MF0iICwiKDE4MCwxODVdIiwgIigxODUsMjAwXSIpLA0KICAgICAgIG9yZGVyZWQ9VFJVRSkgLT4gc3R1ZGVudCTouqvpq5jntJrot50NCg0KYGBgDQpgYGB7cn0NCmhlaWdodExldmVsczwtYygiKDAsMTUwXSIsIigxNTAsMTU1XSIsICIoMTU1LDE2MF0iLCAiKDE2MCwxNjVdIiAsIigxNjUsMTcwXSIsICIoMTcwLDE3NV0iICwiKDE3NSwxODBdIiAsIigxODAsMTg1XSIsICIoMTg1LDIwMF0iKS0+aGVpZ2h0TGV2ZWxzDQpgYGANCmBgYHtyfQ0KaGVpZ2h0TGV2ZWxzIDwtIGMoIigwLDE1MF0iLCIoMTUwLDE1NV0iLCAiKDE1NSwxNjBdIiwgIigxNjAsMTY1XSIgLCIoMTY1LDE3MF0iLCAiKDE3MCwxNzVdIiAsIigxNzUsMTgwXSIgLCIoMTgwLDE4NV0iLCAiKDE4NSwyMDBdIikNCmZhY3RvcihzdHVkZW50JOi6q+mrmOe0mui3nSwNCiAgICAgICBsZXZlbHM9aGVpZ2h0TGV2ZWxzLA0KICAgICAgIG9yZGVyZWQ9VFJVRSkgLT4gc3R1ZGVudCTouqvpq5jntJrot50NCmBgYA0KYGBge3J9DQpsaWJyYXJ5KGRwbHlyKQ0KbGlicmFyeShsdWJyaWRhdGUpDQphPC1TeXMudGltZXpvbmUoKQ0KYQ0KYGBgDQoNCmBgYHtyfQ0KbGlicmFyeShsdWJyaWRhdGUpDQphIDwtIHltZCgiMjAxNy0wMS0zMSIpIA0KYiA8LSB5bWRfaG1zKCIyMDE3LTAxLTMxIDIwOjExOjU5IikNCmENCmBgYA0KYGBge3J9DQpsaWJyYXJ5KGRwbHlyKQ0KbGlicmFyeShsdWJyaWRhdGUpDQphPC15bWQoMDMwMTE5KQ0KYQ0KYGBgDQpgYGB7cn0NCmx1YnJpZGF0ZTo6eW1kKDEzMDEwMSktPmENCmENCmBgYA0KDQpgYGB7cn0NCnN0dWRlbnRJRCA8LSByZWFkX2NzdigiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3RwZW1hcnRpbi9naXRodWItZGF0YS9tYXN0ZXIvc3R1ZGVudElELmNzdiIpDQpsaWJyYXJ5KHN0cmluZ3IpDQpzdHJfc3ViKHN0dWRlbnRJRCTlrbjomZ8sNSw2KQ0KYGBgDQpgYGB7cn0NCg0KYGBgDQoNCg==</div>
 
 
 

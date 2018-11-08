@@ -26,6 +26,53 @@ table(student$出生地)
 ```
 
 ```{r}
+as.factor(student$性別) -> student$性別
+```
+```{r}
+factor(student$身高級距,
+       levels=c("(0,150]","(150,155]", "(155,160]", "(160,165]" ,"(165,170]", "(170,175]" ,"(175,180]" ,"(180,185]", "(185,200]"),
+       ordered=TRUE) -> student$身高級距
+
+```
+```{r}
+heightLevels<-c("(0,150]","(150,155]", "(155,160]", "(160,165]" ,"(165,170]", "(170,175]" ,"(175,180]" ,"(180,185]", "(185,200]")->heightLevels
+```
+```{r}
+heightLevels <- c("(0,150]","(150,155]", "(155,160]", "(160,165]" ,"(165,170]", "(170,175]" ,"(175,180]" ,"(180,185]", "(185,200]")
+factor(student$身高級距,
+       levels=heightLevels,
+       ordered=TRUE) -> student$身高級距
+```
+```{r}
+library(dplyr)
+library(lubridate)
+a<-Sys.timezone()
+a
+```
+
+```{r}
+library(lubridate)
+a <- ymd("2017-01-31") 
+b <- ymd_hms("2017-01-31 20:11:59")
+a
+```
+```{r}
+library(dplyr)
+library(lubridate)
+a<-ymd(030119)
+a
+```
+```{r}
+lubridate::ymd(130101)->a
+a
+```
+
+```{r}
+studentID <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/studentID.csv")
+library(stringr)
+str_sub(studentID$學號,5,6)
+```
+```{r}
 
 ```
 
