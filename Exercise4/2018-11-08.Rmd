@@ -1,0 +1,31 @@
+---
+title: "practice"
+output: html_notebook
+---
+
+```{r}
+bVector<-c("你好","How are you?")
+class(bVector)
+```
+
+```{r}
+library(readr)
+student <- read_csv("https://raw.githubusercontent.com/tpemartin/course-107-1-programming-for-data-science/master/data/student.csv")
+library(dplyr)
+library(magrittr)
+student %<>% mutate(
+  身高級距=cut(身高,c(0,150,155,160,165,170,175,180,185,200)))
+```
+
+```{r}
+as.factor(student$出生地) -> student$出生地
+levels(student$出生地)
+```
+```{r}
+table(student$出生地)
+```
+
+```{r}
+
+```
+
