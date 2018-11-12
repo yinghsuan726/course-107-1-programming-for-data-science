@@ -1,0 +1,266 @@
+---
+title: "下載學生GDrive作業"
+author: "林茂廷"
+date: "11/06/2018"
+output: html_document
+params:
+  deadline: 2018-11-12
+  hwcode: Exercise4
+  ansDir: "Exercise4/ans" #放在\Grading_Programs要..
+  gsFileNameMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
+  gsClassInfo: "1E1P2na_-iRzczWxRVa09ldjE9NMidJOX0RGw9muhZfw"
+  gsFileUpload: "1G8NjBYgWcQFVT8ms4c5HmWp19V_DvJ5u1rEKVNLRmZs"
+  markOffItems: NULL
+---
+!!! 檢查 174 檔案mapping更新 colname 被蓋掉問題
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 引入GS
+
+```{r import g sheets}
+library(dplyr)
+library(googlesheets)
+library(lubridate)
+library(stringr)
+library(readr)
+library(stringr)
+library(googledrive)
+library(tools)
+#gs_auth(new_user = TRUE)
+split_path <- function(x) if (dirname(x)==x) x else c(basename(x),split_path(dirname(x)))
+workDir<- split_path(getwd()) %>% rev 
+params$ansDir %>% split_path -> ansDir
+union(workDir,ansDir) %>% file.path -> ansDir
+
+paste0("'",union(workDir,ansDir),"'") %>% 
+  paste0(., collapse = ",") %>%
+  paste0("file.path(",.,")") %>%
+  {eval(parse(text=.))} -> workingPath
+# 引入線上繳件資料
+gs_auth(new_user = T)
+gsSubmit<-gs_key(params$gsFileUpload)
+dataSubmit0 <- gs_read(gsSubmit,ws="Form Responses 1") 
+dataSubmit0 %>% filter(作業代碼==params$hwcode) -> dataSubmit
+```
+
+# 作業上傳gs記錄
+
+## 創新ws
+```{r}
+dataSubmit %>% filter(作業代碼==params$hwcode) ->
+  dataSubmit
+
+if(!any(str_detect(gsSubmit$ws$ws_title,params$hwcode))){
+  # 若不存在作業ws則創新ws
+  gs_ws_new(gsSubmit,ws=params$hwcode)
+  gsSubmit<-gs_key(params$gsFileUpload)
+} 
+
+# 計算每位的上傳次數，及每個上傳的下載排序
+dataSubmit %>% mutate(
+  Timestamp=lubridate::mdy_hms(Timestamp,tz="Asia/Taipei")
+  ) %>% group_by(學號) %>%
+  arrange(desc(Timestamp)) %>% 
+  mutate(下載排序=1:n(),總上傳次數=n()) %>%
+  ungroup -> # 1為最新檔案
+  dataSubmit 
+
+# 標示「在期限內」
+# parse deadline
+deadlineDateTime <- paste0(params$deadline, " 23:59:59 CST")
+deadlineDateTime %>% ymd_hms(tz="Asia/Taipei") -> deadlineDateTime
+
+dataSubmit %>% 
+  mutate(在期限內=(Timestamp < deadlineDateTime)) -> dataSubmit
+
+if(!any(gsSubmit$ws$ws_title==params$hwcode)){
+  gs_ws_new(gsSubmit,ws=params$hwcode)
+  gsSubmit<-gs_key(params$gsFileUpload)
+}
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws=params$hwcode,
+                input=.,
+                col_names = T)
+```
+
+
+## 比對學號輸出正確性
+
+```{r}
+ClassInfoSheets <- gs_key(params$gsClassInfo)
+gs_read(ClassInfoSheets,ws="LMS") -> dataLMS #數位學苑資料
+gs_read(ClassInfoSheets,ws="全班資訊") -> 
+  dataAllInfo #含所有回填資訊
+dataLMS %>% select(帳號,信箱) %>%
+  rename(LMS學號=帳號,
+           `Email Address`=信箱) -> idEmailLMS
+dataAllInfo %>% select(學號,Gmail) %>%
+  rename(
+    Survey學號=學號,
+    `Email Address`=Gmail) -> 
+  idEmailSurvey
+
+# Email有在LMS的, 學號以LMS為準
+dataSubmit %>% mutate(
+  EmailatLMS=(`Email Address` %in% idEmailLMS$`Email Address`)
+  ) -> dataSubmit
+dataSubmit %>% left_join(
+  idEmailLMS,by=c("Email Address")
+) -> dataSubmit
+
+dataSubmit %>%
+  mutate(
+    學號=ifelse(EmailatLMS == TRUE,LMS學號,學號)
+  ) %>%
+  select(-c("EmailatLMS","LMS學號")) -> dataSubmit
+
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws=params$hwcode,
+                input=.,
+                col_names = T)
+```
+
+## 選出在期限內最新的作業上傳
+
+```{r}
+
+# 每位同學的最新檔案放在Temp暫存ws，等候下載
+if(!any(str_detect(gsSubmit$ws$ws_title,"Temp"))){ 
+  # 若不存在Temp ws則創新ws,  用來暫存要下載的最新檔案
+  gs_ws_new(gsSubmit,ws="Temp")
+  gsSubmit<-gs_key(params$gsFileUpload)
+} 
+
+dataSubmit %>% 
+  filter(
+    在期限內==T
+  ) %>% 
+  group_by(學號) %>%
+  filter(下載排序==min(下載排序))  %>%
+  ungroup() %>%
+  arrange(學號) -> dataSubmit
+
+# Temp ws依學號排序，記錄每位同學期限內上傳的最新檔
+if(!("Temp" %in% gsSubmit$ws$ws_title)){
+  gs_ws_new(gsSubmit,ws="Temp")
+  gsSubmit<-gs_key(params$gsFileUpload)
+}
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws="Temp",
+                input=.,
+                col_names = T)
+```
+
+## 產生新檔名
+
+```{r creatNewFileName}
+library(googledrive)
+newNamefun<-function(fileAccessURL,i,numberOfDownloaded=0){
+  programFileId<-as_id(fileAccessURL)
+  programFileNameOld<-drive_get(id=programFileId)$name
+  programFileNameExtension<-file_ext(programFileNameOld)
+  programFileNameNew<-paste0(params$hwcode,"_",i+numberOfDownloaded,".",programFileNameExtension,collapse = ".") 
+  fileName<- list(
+    new = programFileNameNew,
+    old = programFileNameOld
+  )
+  return(fileName)
+}
+
+newNameCollect <- character()
+oldNameCollect <- character()
+for(i in 1:dim(dataSubmit)[1]){
+  #i<-1
+  submission_i<-dataSubmit[i,]
+  
+  fileName<-newNamefun(dataSubmit[i,]$答案檔,i)
+  ###
+  # file_download<-drive_download(as_id(dataSubmit[i,]$答案檔))
+  # file.rename(fileName$old,fileName$new)
+  # file.copy(fileName$new,paste0(params$ansDir))
+  ###
+  ##print(getwd())
+  drive_download(as_id(dataSubmit[i,]$答案檔),
+                path=file.path(workingPath,fileName$new),
+                 overwrite = T)
+  # drive_download(as_id(dataSubmit[i,]$答案檔),
+  #               path=
+  #                 paste0(
+  #                   getwd(),
+  #                   str_replace(params$ansDir,".",""),
+  #                   "/",
+  #                   fileName$new
+  #                   ))
+  
+  newNameCollect <- c(newNameCollect, fileName$new)
+  oldNameCollect <- c(oldNameCollect, fileName$old)
+}
+# 確保.Rmd 而非 .rmd .rMd等
+str_replace(newNameCollect,regex("Rmd", ignore_case = T),"Rmd")->newNameCollect
+dataSubmit$新檔名 <- newNameCollect
+dataSubmit$原始檔名 <- oldNameCollect
+
+dataSubmit %>%
+  gs_edit_cells(gsSubmit,ws="Temp",
+            input=.,
+            col_names = T)
+```
+
+# Rmd檔處理
+
+```{r}
+listOfRmds<-list_files_with_exts(workingPath,"Rmd")
+ansRmds<- listOfRmds %>%
+  str_which("-ans.Rmd") %>%
+  {listOfRmds[.]}
+
+c(paste0(workingPath,"/",newNameCollect),ansRmds) -> okRmds
+
+# 移除不必要的Rmds
+file.remove(setdiff(listOfRmds,okRmds))
+
+# 更新Rmd名單
+listOfRmds<-list_files_with_exts(workingPath,"Rmd")
+
+```
+
+
+## 檢查Encoding
+```{r}
+library(purrr)
+map(listOfRmds,readr::guess_encoding) -> encodingGuess
+map_chr(encodingGuess,function(x) x$encoding[1]) -> encodingList
+
+dataEncoding <- data.frame(
+  Filename = listOfRmds,
+  Encoding = encodingList,
+  stringsAsFactors = F
+)
+
+dataEncoding %>%
+  filter(Encoding != "UTF-8") -> nonUTF8Rmds
+if(nrow(nonUTF8Rmds)!=0){
+  for(i in 1:nrow(nonUTF8Rmds)){
+    #i<-1
+    rawRmd_i<-read_lines(nonUTF8Rmds$Filename[i],locale=locale(encoding=nonUTF8Rmds$Encoding[i]))
+    write_lines(rawRmd_i,path=nonUTF8Rmds$Filename[i])
+  }
+}
+
+## 記錄encoding狀態
+dataEncoding$Filename %>% str_replace(paste0(workingPath,"/"),"") -> 
+  dataEncoding$Filename
+dataSubmit %>% 
+  left_join(dataEncoding,by=c("新檔名"="Filename")) -> dataSubmit
+
+dataSubmit %>% gs_edit_cells(
+  gsSubmit,ws="Temp",
+  input=.,
+  anchor="A1"
+)
+```
+
+
+

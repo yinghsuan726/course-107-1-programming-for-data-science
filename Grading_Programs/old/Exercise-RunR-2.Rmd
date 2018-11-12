@@ -1,0 +1,274 @@
+---
+title: "Grading with flexible methods"
+author: "林茂廷"
+output: html_document
+params:
+  dirSet: "../Exercise3/ans"
+  hwcode: "Exercise3"
+  gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
+  gsfileMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
+  gsPublicKey: "1NespAnPgIdVqtSOntojQpBhoJWbCDN4cnSpqcShc9O0"
+---
+## 創造只有data objects的environment
+
+### 由ansR產生乾淨data物件
+```{r, message=F}
+library(tools)
+library(purrr)
+library(stringr)
+library(dplyr)
+library(knitr)
+library(googlesheets)
+dirSet<-params$dirSet
+listOfRs <- list_files_with_exts(dirSet,"R")
+listOfRdas<-listOfRs %>% str_replace(".R",".Rda")
+ansLoc <- str_which(listOfRs,"ans.R")
+listOfRsNoAns <- listOfRs[-ansLoc]
+ansR<-listOfRs[ansLoc]
+
+# 執行ansR的資料引入
+## 清空目前env可能有和dataObjects相名稱的物作
+load(paste0("../",params$hwcode,"/dataSubmitTrack.Rda"))
+rm(list=dataObjects)
+
+originContent <- readLines(ansR)
+lapply(dataObjects,
+       function(x) {
+         loc<-str_which(originContent,x)
+         min(loc)
+       })->dataLines
+dataLines<-unlist(dataLines)
+dataImportLines<- originContent[dataLines]
+eval(parse(
+  text=(dataImportLines)
+))
+```
+
+```{r}
+# Remove everything but dataObjects
+rm(list=setdiff(ls(),c(dataObjects,"dataObjects","listOfRs","params","markoutDatasetStatus")))
+
+# Run R to get Rda
+library(rlang)
+validSequence<-{1:length(listOfRs)}[markoutDatasetStatus]
+validRda<-rep(F,length(listOfRs)) # 可否產生Rda
+for(i in validSequence){
+  dataEnv <- env() # renew environment each time
+  tryCatch(
+    {
+      map(dataObjects,
+          ~eval(parse(text=paste0("assign('",
+             .,"',",
+             .,",envir=dataEnv)"))))
+      source(listOfRs[i],dataEnv)  
+      validRda[i]<-T
+    },
+    error=function(e){
+      
+    }
+  ) 
+}
+
+```
+
+
+
+```{r , message=FALSE, error=FALSE}
+
+listOfRs<-list_files_with_exts(params$dirSet,"R")
+library(stringr)
+listOfRdas<-str_replace(listOfRs,".R",".Rda")
+
+responseCollection<-vector("list",length=length(listOfRs))# list()
+```
+
+```{r}
+# 有些tryCatch R file無法儲存catchList到Rda
+# 記錄可儲存catchList的名單
+oklistOfSavedTryCatchFiles <- list_files_with_exts(params$dirSet,"Rda")
+
+load(paste0("../",params$hwcode,"/dataSubmitTrack.Rda"))
+dataSubmit$新檔名 %>% str_which(".Rmd") -> validRmds
+dataSubmit$新檔名[validRmds] %>% str_replace(".Rmd",".Rda") %>%
+  {. %in% oklistOfSavedTryCatchFiles} %>%
+  { validRmds[.] } -> validRda
+dataSubmit$cannotRda <- F
+dataSubmit$cannotRda[validRda] <- T
+```
+
+## 批改Rda
+
+```{r}
+## 彈性改題函數
+correctFun <- function(.studentAns_i,.correctAns_i,type="i",method=NULL) {
+  switch(type,
+         "i" = identical(.studentAns_i,.correctAns_i),
+         "b" = (all(.studentAns_i %in% .correctAns_i) &
+                  all(.correctAns_i %in% .studentAns_i)),
+         method(.studentAns_i,.correctAns_i)
+  )
+}
+
+oklistOfSavedTryCatchFiles<-list_files_with_exts(params$dirSet,"Rda")
+upperlistOfSavedTryCatchFiles<-toupper(oklistOfSavedTryCatchFiles)
+ansLoc<-str_which(upperlistOfSavedTryCatchFiles,"ANS.RDA")
+studentAnswers <- oklistOfSavedTryCatchFiles[-ansLoc]
+load(oklistOfSavedTryCatchFiles[ansLoc])
+
+correctAnswers <- catchList
+correctAnswers %>% names -> ansNames
+#isolate ansX parts
+ansNames %>% str_which("ans") -> ansParts
+
+results<-c()
+for(j in 1:length(studentAnswers)){
+  #j<-1
+  #j<-1 #第j個學生
+  #j<-9
+  #j<-1
+  load(studentAnswers[j])
+  studentAnswers_j <- catchList
+  #print(j)
+  result_j<-c()
+  for(i in 1:length(ansParts)){
+  #第i題
+    #i<-2
+    #i<-1
+    #print(i)
+    chunkName_i <- ansNames[ansParts[i]] #第i題的chunk name
+    # 檢查有無對應改題method
+    chunkNumber_i <- str_split_fixed(chunkName_i,"ans",n=2)[,2]
+    methodName_i<-paste0("m",chunkNumber_i)
+    correctAns_i <- correctAnswers[[chunkName_i]]
+    correctMethod_i <- correctAnswers[[methodName_i]]
+    
+    if(is.character(correctMethod_i)){ #有用字串選內定改法
+      result_ij <- correctFun(studentAnswers_j[[chunkName_i]],
+                             correctAns_i,
+                             type=correctMethod_i)
+    } else if(is.null(correctMethod_i)){ #沒有設定，用預設identical
+      result_ij <- correctFun(studentAnswers_j[[chunkName_i]],
+                             correctAns_i)
+    } else { #自定函數
+      result_ij <- correctFun(studentAnswers_j[[chunkName_i]],
+                             correctAns_i,type="o",
+                             method=correctMethod_i)
+    }
+    result_j<-c(result_j,result_ij)*1
+  }
+  results <- rbind(results, result_j)
+}
+
+colnames(results) <- ansNames[ansParts]
+results <- as.data.frame(results)
+
+studentAnswers %>%
+  basename %>% str_split_fixed(".Rda",n=2) %>%
+  {.[,1]} -> okRdaList
+
+results$shortHWname <- okRdaList
+dataSubmit %>% left_join(
+  results,by=c("shortHWname")
+) %>% mutate(cannotRda=!(shortHWname %in% results$shortHWname)) -> dataSubmit
+
+#gsMapping %>% gs_read(ws=wsName) -> fileMapping
+
+dataSubmit %>% select(姓名,學號,新檔名,Encoding,cannotPurl,cannotRda,starts_with("ans")) %>%
+  mutate(學號=as.character(學號))  -> mergedResults
+
+# 更新dataSubmitBackup ProcessedTime
+processedID <- which(dataSubmitBackup$學號 %in%
+                       dataSubmit$學號)
+
+dataSubmitBackup$ProcessedTime[processedID]<-
+  as.character(Sys.time())
+dataUpload <- dataSubmitBackup %>%
+  select(Timestamp:ProcessedTime)
+library(googlesheets)
+gsFileMap<-gs_key(params$gsfileMapping)
+gs_edit_cells(gsFileMap,ws=params$hwcode,
+              input=dataUpload, col_names = TRUE,
+              anchor="A1")
+
+
+mergedResults %>% mutate(
+  上傳檔正常=(!cannotPurl & (Encoding=="UTF-8") & !cannotRda)
+  ) -> mergedResults
+
+# 成績計算
+library(magrittr)
+mergedResults %>% 
+  select_at(vars(starts_with("ans"))) %>%
+  transmute(成績=rowSums(.,na.rm = T)/length(ansParts)*5+5) %$%
+  成績 -> mergedResults$成績
+
+# Sort by 學號
+mergedResults %>% arrange(學號) -> mergedResults
+
+publicResults <-
+  mergedResults %>% select(
+    -姓名,-新檔名,-cannotPurl, -cannotRda
+  )
+
+str_split_fixed(mergedResults$新檔名,"ans/",n=2)[,2]->mergedResults$新檔名
+```
+
+
+```{r 上傳GS, eval=F}
+wsNameTemp <- paste0(params$hwcode,"-",Sys.Date())
+
+gsCorrected<-gs_key(params$gskey)
+gsCorrected$ws$ws_title %>% 
+  str_which(params$hwcode) %>%
+  {gsCorrected$ws$ws_title[.]} %>%
+  sort(decreasing=T) %>%
+  {.[1]} -> latestWS
+latestCorrectedWS <- gs_read(
+  gsCorrected, ws=latestWS
+)
+latestCorrectedWS %>% 
+  mutate(學號=as.character(學號)) %>%
+  filter(!(學號 %in% mergedResults$學號)) -> 
+  keepedRecords
+keepedRecords %>%
+  dplyr::bind_rows(mergedResults) %>%
+  arrange(學號)-> updateCorrectedWS
+
+gsPublic<-gs_key(params$gsPublicKey)
+
+gsPublic$ws$ws_title %>% 
+  str_which(params$hwcode) %>%
+  {gsPublic$ws$ws_title[.]} %>%
+  sort(decreasing=T) %>%
+  {.[1]} -> latestPublicWS
+latestCorrectedPublicWS <- gs_read(
+  gsPublic, ws=latestPublicWS
+)
+latestCorrectedPublicWS %>% 
+  mutate(學號=as.character(學號)) %>%
+  filter(!(學號 %in% publicResults$學號)) -> 
+  keepedPublicRecords
+keepedPublicRecords %>%
+  dplyr::bind_rows(publicResults) %>%
+  arrange(學號)-> updateCorrectedPublicWS
+
+
+if(wsNameTemp %in% gs_ws_ls(gsCorrected)){
+  gs_edit_cells(gsCorrected,ws=wsNameTemp,
+                input=updateCorrectedWS, col_names = TRUE,
+                anchor="A1")
+  gs_edit_cells(gsPublic,ws=wsNameTemp,
+                input=updateCorrectedPublicWS, col_names = TRUE,
+                anchor="A1")  
+} else {
+  gs_ws_new(gsCorrected,ws=wsNameTemp,
+            input=updateCorrectedWS, col_names = TRUE,
+            anchor="A1")  
+  gs_ws_new(gsPublic,ws=wsNameTemp,
+              input=updateCorrectedPublicWS, col_names = TRUE,
+              anchor="A1")
+
+}
+
+file.remove(listOfRs)
+```
