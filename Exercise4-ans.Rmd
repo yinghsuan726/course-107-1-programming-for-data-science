@@ -1,0 +1,198 @@
+---
+params:
+  studentID: "你的學號"
+  studentName: "你的名字"
+  repoURL: "你的作業github repo網址，為https://github.com/yourUserName/yourRepoName"
+---
+存檔時，請用你的學號當延伸檔名。例如：若你的學號為41078392，則請`File->Save As...`存成Exercise4-41078392.Rmd。
+
+** repoULR是選填；若你是用github儲存你的作業且有意願和老師線上討論作業才填。 **
+
+## 1 答題正確率統計
+
+請引入以下資料  
+```{r data1}
+library(readr)
+gsHW2ws <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/gsHW2ws.csv")
+```
+
+### 1.1 
+請算出題號**ans1**的答對率
+(hint: 使用`sum(x, na.rm=TRUE)` 或 `mean(x, na.rm=TRUE)`來記算數值向量的**總合**(sum)或**平均**(mean)， 其中因為資料有無法判斷的NA值，所以必需設定na.rm=TRUE，表示計算時先排除NA的觀測值。)
+```{r ans1}
+percentCorrect <- mean(gsHW2ws$ans1==1, na.rm=TRUE)
+percentCorrect
+```
+
+## 1.2
+使用`stringr::str_which()`來找出gsHW2ws中所有變數名稱包含的"ans"的欄位位置。
+```{r ans12}
+library(stringr)
+ansNames <- str_which(names(gsHW2ws),"ans")
+```
+
+## 1.3
+使用`colMeans(x, na.rm=T)`一口氣計算五題的正確率（產生一個包含5題正確率的數值向量）。
+```{r ans13}
+colMeans(gsHW2ws[,ansNames],na.rm=T)
+```
+
+## 1.4
+透過`gsHW2ws$答對率 <- ...` 在gsHW2ws新增一個欄位變數叫「答對率」, 其值為每個人各自在5題的正確比率。（hint: `rowSums(x, na.rm=TRUE)`) 
+```{r ans14}
+gsHW2ws$答對率 <- rowMeans(gsHW2ws[,ansNames],na.rm = TRUE)
+```
+
+## 1.5
+作業成績為5分加上「答對率」* 5。請在gsHW2ws新增「成績」欄位，並填入每個人的成績值。  
+```{r ans15}
+gsHW2ws$成績 <- 5+gsHW2ws$答對率*5
+```
+
+## 1.6
+答對4題的人，最常錯的問題是那兩題？請找出其題目代碼。(`min()`與`max()`可找出極小與極大值，而`which()`可找出符合設定條件的元素位置)
+```{r ans16}
+# 計算每人答對題數
+gsHW2ws$答對題數 <- rowSums(gsHW2ws[,ansNames],na.rm = TRUE)
+# 取出答對4題的子樣本
+sample4corrects<- gsHW2ws[(gsHW2ws$答對題數==4),ansNames]
+# 計算子樣本的各題答對率
+colMeans(sample4corrects,na.rm = TRUE)->aa
+# 答對率最低的位置
+minLocation <- which(aa == min(aa))
+min1<-names(aa)[minLocation]
+
+# 答對率第二低
+aa<-aa[-minLocation]
+minLocation <- which(aa == min(aa))
+min2<-names(aa)[minLocation]
+
+# 答對率最低二題的題目代碼
+commonMistakes<-c(min1, min2)
+commonMistakes
+```
+
+另一個做法，利用sort
+```{r}
+# 計算每人答對題數
+gsHW2ws$答對題數 <- rowSums(gsHW2ws[,ansNames],na.rm = TRUE)
+# 取出答對4題的子樣本
+sample4corrects<- gsHW2ws[(gsHW2ws$答對題數==4),ansNames]
+# 計算子樣本的各題答對率
+colMeans(sample4corrects,na.rm = TRUE)->aa
+# 答對率最低的二個值
+sort(aa)[c(1,2)] -> min2
+# 找出aa哪些位置會有答對率屬於min2最低二值（這題得多這步，因為超過二個答案
+which(aa %in% min2) -> whichMin2 
+# 題目名
+names(aa[whichMin2])
+```
+
+## 1.7
+答對3題的人，有那幾題正確率低於5成？請找出其題目代碼。
+```{r ans17}
+# 計算每人答對題數
+gsHW2ws$答對題數 <- rowSums(gsHW2ws[,ansNames],na.rm = TRUE)
+# 取出答對4題的子樣本
+sample3corrects<- gsHW2ws[(gsHW2ws$答對題數==3),ansNames]
+# 計算子樣本的各題答對率
+colMeans(sample3corrects,na.rm = TRUE)->aa
+# 答對率最低的位置
+lowLocation <- which(aa < 0.5 )
+# 答對率最低的題目代碼
+names(aa)[lowLocation]
+```
+
+## 2 政府開放資料
+
+請引入以下資料：
+```{r data2}
+library(readr)
+allBankData <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/allBankData.csv")
+```
+
+
+## 2.1
+**allBankData**的**年月**變數為民國年月，請將他改成西元年月日的date class, 「日」請設定成為1號，結果請存回**年月**變數。（hint: 善用`stringr::str_c()`及`lubridate::ymd()`丶`lubridate::years()`）
+
+```{r ans21}
+library(stringr)
+library(lubridate)
+# 改成"10民國年/月/01"內容
+allBankData$年月<-str_c("1",allBankData$年月,"/01")
+# 改成date class
+allBankData$年月<-ymd(allBankData$年月)
+# 加上911年成正確西元年
+allBankData$年月<-allBankData$年月+years(911)
+```
+
+## 2.2
+呈上題，allBankData只留下**銀行,年月,定存利率-三個月-固定,定存利率-一年期-固定**，接著將每個變數的class修改為合理的class。（**銀行**變數的合理class請慎選）
+```{r ans22}
+allBankData$銀行 <- as.factor(allBankData$銀行)
+allBankData$`定存利率-三個月-固定` <- as.numeric(allBankData$`定存利率-三個月-固定`)
+allBankData$`定存利率-一年期-固定` <- as.numeric(allBankData$`定存利率-一年期-固定`)
+allBankData
+```
+
+
+# 3 政府開放資料
+引入台灣主要貿易對手國貨幣對美元匯率資料
+```{r data3}
+library(readr)
+exData <- read_csv("https://quality.data.gov.tw/dq_download_csv.php?nid=6563&md5_url=9f65bdb6752389dc713acc27e93c1c38")
+```
+
+## 3.1
+將所有變數的class修正正確。改題方式會去檢查整個dataframe中所有欄位的class，故最後一行請寫dataframe名稱。(hint: 使用`mutate_at()`)
+```{r ans31}
+library(dplyr)
+library(lubridate)
+library(stringr)
+exData %>% 
+  mutate_at(
+    vars(
+      contains("/")
+      ),
+    funs(
+      parse_number(.,na=c("","NA","-"))
+    )
+  ) %>%
+  mutate(
+    期間=str_c(期間,"-01"),
+    期間=ymd(期間)
+  ) -> exData
+exData
+```
+
+
+## 3.2
+每一國家對其貨幣匯率有兩種標示方式，以台灣看新台幣為例：一種為direct quote，標示為USD/NTD，代表一塊新台幣（NTD）可以換多少美元（USD)； 另一種為indirect quote，標示為NTD/USD，代表一塊美金（USD）可以換多少新台幣（NTD）--兩者互為倒數關係，即若NTD/USD=40，則USD/NTD=1/40。不同國家貨幣的匯率習慣標示皆有所不同，請將資料中的貨幣都轉成"XXX/USD"，即"USD"在分母。改題方式會去檢查整個dataframe中需要改的那幾欄，故那幾欄的名稱請勿更動，最後一行程式請寫dataframe名稱。(hint: 使用`mutate_at()`)
+
+```{r ans32}
+exData %>%
+  mutate_at(
+    vars(
+      contains("USD/")
+    ),
+    funs(
+      1/.
+    )
+  ) -> exData1
+exData1
+```
+
+
+## 3.3
+將上題轉換的匯率變數名稱中英文拿掉，如原名為"英鎊USD/GBP"則需改成"英鎊"。改題方式會去檢查整個dataframe中需要改的那幾欄的欄位名稱，故最後一行請寫dataframe名稱。
+(hint: `colnames()`支援generic replacement; `str_locate()`可找出元素中某個符號的位置;`str_sub()`可取出所要字元)
+```{r ans33}
+colnames(exData1) -> cNames 
+currencyName <- cNames[-1]
+currencyName %>% str_locate("/") %>%
+  {str_sub(currencyName,1,.[,1]-4)} -> 
+  currencyName
+colnames(exData1)[-1]<-currencyName
+exData1
+```
+
