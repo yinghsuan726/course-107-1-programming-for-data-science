@@ -97,8 +97,6 @@ dataSubmit %>% mutate(shortHWname=file_path_sans_ext(新檔名)) -> dataSubmit
 dataSubmitBackup<-dataSubmit
 ```
 
-## 取出 上傳檔正常 為False
-
 ## dataSubmit只留下沒processed 或 上傳檔正常 False
 
 ```{r}
@@ -268,7 +266,7 @@ appendTryCatch <- function(.x){
           "},",
           "error=function(e){",
                     paste0("'Fail'->","catchList[['",chunkNameList[i],"']]"),
-          "}",
+          "},",
           "warning=function(w){",
 paste0("'Fail'->","catchList[['",chunkNameList[i],"']]"),
 "}",
