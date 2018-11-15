@@ -1,0 +1,196 @@
+---
+title: "Grading with flexible methods"
+author: "林茂廷"
+output: html_document
+params:
+  workingPath: "/Midterm/ans" 
+  deadline: 2018-11-12
+  hwcode: Midterm
+  baseDir: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/"
+  gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
+  gsfileMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
+  gsPublicKey: "1NespAnPgIdVqtSOntojQpBhoJWbCDN4cnSpqcShc9O0"
+  gsUpload: "1G8NjBYgWcQFVT8ms4c5HmWp19V_DvJ5u1rEKVNLRmZs"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = params$baseDir)
+```
+
+
+```{r}
+library(tools)
+library(purrr)
+library(stringr)
+library(dplyr)
+library(knitr)
+library(googlesheets)
+library(readr)
+
+paste0(".",params$workingPath) -> workingPath
+
+```
+
+
+## Step 2: 批改Rda
+
+```{r}
+## 彈性改題函數
+correctFun <- function(.studentAns_i,.correctAns_i,type="i",method=NULL) {
+  switch(type,
+         "i" = identical(.studentAns_i,.correctAns_i),
+         "b" = (all(.studentAns_i %in% .correctAns_i) &
+                  all(.correctAns_i %in% .studentAns_i)),
+         method(.studentAns_i,.correctAns_i)
+  )
+}
+
+oklistOfSavedTryCatchFiles <- list_files_with_exts(workingPath,"Rda")
+
+chunkSheetPathFile <- paste0(workingPath,"/","chunkSheet.Rda") 
+
+# 準備學生答案Rda名單
+studentAnswers <- oklistOfSavedTryCatchFiles
+
+# 引入正確答案Rda
+ansRda <- paste0(workingPath,"/",toupper(params$hwcode),"-ANS.Rda")
+load(ansRda)
+```
+
+```{r}
+correctAnswers <- catchList
+correctAnswers %>% names %>%
+  str_subset("ans") -> ansNames
+#isolate ansX parts
+ansNames %>% str_which("ans") -> ansParts
+
+results<-c()
+idname<-c()
+for(j in 1:length(studentAnswers)){
+  #j<-1
+  #j<-1 #第j個學生
+  #j<-9
+  #j<-1
+  load(studentAnswers[j])
+  studentAnswers_j <- catchList
+  #print(j)
+  result_j<-c();
+  for(i in 1:length(ansParts)){
+  #第i題
+    #i<-2
+    #i<-12
+    #print(c(i,j))
+    chunkName_i <- ansNames[ansParts[i]] #第i題的chunk name
+    # 檢查有無對應改題method
+    chunkNumber_i <- str_split_fixed(chunkName_i,"ans",n=2)[,2]
+    methodName_i<-paste0("m",chunkNumber_i)
+    correctAns_i <- correctAnswers[[chunkName_i]]
+    correctMethod_i <- correctAnswers[[methodName_i]]
+    
+    if(is.character(correctMethod_i)){ #有用字串選內定改法
+      result_ij <- correctFun(studentAnswers_j[[chunkName_i]],
+                             correctAns_i,
+                             type=correctMethod_i)
+    } else if(is.null(correctMethod_i)){ #沒有設定，用預設identical
+      result_ij <- correctFun(studentAnswers_j[[chunkName_i]],
+                             correctAns_i)
+    } else { #自定函數
+      result_ij <- if(is.null(studentAnswers_j[[chunkName_i]])){FALSE}
+      else {correctFun(studentAnswers_j[[chunkName_i]],
+                             correctAns_i,type="o",
+                             method=correctMethod_i)}
+    }
+    idname_j<-studentAnswers_j[[1]][c("id","name")] %>% unlist
+    result_j<-c(result_j,result_ij)*1
+  }
+  results <- rbind(results, result_j)
+  idname<-rbind(idname,idname_j)
+}
+
+colnames(results) <- ansNames[ansParts]
+results <- as.data.frame(results)
+results %>%
+  mutate(
+    id=idname[,"id"],
+    name=idname[,"name"]
+  ) -> results
+      
+studentAnswers %>%
+  basename %>% str_split_fixed(".Rda",n=2) %>%
+  {.[,1]} -> okRdaList
+
+results$shortHWname <- okRdaList
+```
+
+## 準備公開成績資料
+```{r}
+dataSubmitUpdate %>% select(姓名,學號,新檔名,Encoding,cannotPurl,cannotRda,starts_with("ans")) %>%
+  mutate(學號=as.character(學號))  -> mergedResults
+
+# 上傳檔名對照表
+library(googlesheets)
+dataSubmitUpdate %>%
+  select(Timestamp,姓名,學號,原始檔名,新檔名,`Email Address`,ProcessedTime)->dataUpload
+gsFileMap<-gs_key(params$gsfileMapping)
+if(!(params$hwcode %in% gsFileMap$ws$ws_title)){
+  gs_ws_new(gsFileMap,ws=params$hwcode,
+              input=dataUpload, col_names = TRUE,
+              anchor="A1")
+} else{
+  gs_edit_cells(gsFileMap,ws=params$hwcode,
+                input=dataUpload, col_names = TRUE,
+                anchor="A1")
+}
+
+# 上傳成績結果準備
+mergedResults %>% mutate(
+  上傳檔正常=(!cannotPurl & (Encoding=="UTF-8") & !cannotRda)
+  ) -> mergedResults
+
+# 成績計算
+library(magrittr)
+mergedResults %>% 
+  select_at(vars(starts_with("ans"))) %>%
+  transmute(成績=rowSums(.,na.rm = T)/length(ansParts)*5+5) %$%
+  成績 -> mergedResults$成績
+
+# Sort by 學號
+mergedResults %>% arrange(學號) -> mergedResults
+
+publicResults <-
+  mergedResults %>% select(
+    -姓名,-新檔名,-cannotPurl, -cannotRda
+  )
+```
+
+
+```{r 上傳GS, eval=F}
+wsNameTemp <- paste0(params$hwcode,"-",Sys.Date())
+gsPublic<-gs_key(params$gsPublicKey)
+gsCorrected<-gs_key(params$gskey)
+
+if(wsNameTemp %in% gs_ws_ls(gsCorrected)){
+  gs_edit_cells(gsCorrected,ws=wsNameTemp,
+                input=mergedResults, col_names = TRUE,
+                anchor="A1")
+  gs_edit_cells(gsPublic,ws=wsNameTemp,
+                input=publicResults, col_names = TRUE,
+                anchor="A1")  
+} else {
+  gs_ws_new(gsCorrected,ws=wsNameTemp,
+            input=mergedResults, col_names = TRUE,
+            anchor="A1")  
+  gs_ws_new(gsPublic,ws=wsNameTemp,
+              input=publicResults, col_names = TRUE,
+              anchor="A1")
+
+}
+
+mergedResults %>% filter(上傳檔正常==FALSE) %>%
+  {paste0(workingPath,"/",.$新檔名)} -> problemFiles
+#file.remove(paste0(workingPath,"/problem"))
+problemDir<-paste0(workingPath,"/problem")
+file.copy(problemFiles,to=problemDir)
+#file.remove(listOfRs)
+```
