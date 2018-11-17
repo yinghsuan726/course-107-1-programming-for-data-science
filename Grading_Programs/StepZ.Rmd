@@ -57,6 +57,26 @@ file.path(workingPathUpper,params$examEmptyRmd)->examEmptyFilePath
 readLines(examEmptyFilePath)->examEmptyLines
 ```
 
+## 增加header設定
+
+```{r}
+examEmptyLines %>%
+  str_which("html_document") -> html_docment_index
+html_setting<-c(
+"  html_document:",
+"    includes:",
+"      in_header: header.html"
+)
+examEmptyLines %>%
+{  c(
+    .[1:(html_docment_index-1)],
+    html_setting,
+    .[(html_docment_index+1):length(.)]
+  )} -> 
+  examEmptyLines
+```
+
+
 #### 更新setup chunk 
 
 ```{r}
@@ -77,39 +97,6 @@ newContent <-
 examEmptyLines %>%
   chunkcontent_replace("setup",newContent,chunkTicks) ->
   examEmptyLines2
-```
-
-#### 試題卷ansXX部份插入`#ansXX#`
-
-```{r, eval=F}
-chunkTicks$chunkName %>% #View
-  str_subset("(ans[[:alnum:]]+)") -> allAnsChunkNames
-library(purrr)
-for(chunkName_i in allAnsChunkNames){
-  #chunkName_i <- allAnsChunkNames[1]
-  examEmptyLines2 %>% #update chunkTicks dataframe
-    chunkticksDF -> chunkTicks
-  newContent<-paste0("'",chunkName_i,"'") #create html replacement flag
-  examEmptyLines2 %>% # insert flag
-    chunkcontent_replace(
-      chunkName_i,newContent,chunkTicks) -> 
-    examEmptyLines2
-}
-examEmptyFilePath %>%
-  basename %>%
-  file.path(tempPath,.) -> examEmptyFilePath2
-{writeLines(examEmptyLines2,examEmptyFilePath2)}
-```
-
-#### 轉出html
-
-```{r, eval=F}
-rmarkdown::render(
-  examEmptyFilePath2,
-  output_format = "html_document",
-  examEmptyFilePath2 %>% str_replace("(\\.Rmd)","\\.html"),
-  quiet = T
-)
 ```
 
 
