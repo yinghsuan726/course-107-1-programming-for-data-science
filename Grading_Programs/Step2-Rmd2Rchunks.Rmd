@@ -5,13 +5,14 @@ output: html_document
 params:
   deadline: 2018-11-12
   hwcode: Exercise4
+  baseDir: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/"
   ansDir: "Exercise4/ans" #放在\Grading_Programs要..
   gsFileNameMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
   gsClassInfo: "1E1P2na_-iRzczWxRVa09ldjE9NMidJOX0RGw9muhZfw"
   gsFileUpload: "1G8NjBYgWcQFVT8ms4c5HmWp19V_DvJ5u1rEKVNLRmZs"
   markOffItems: NULL
 ---
-!!! 檢查 174 檔案mapping更新 colname 被蓋掉問題
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -30,15 +31,8 @@ library(tools)
 library(purrr)
 library(rlang)
 #gs_auth(new_user = TRUE)
-split_path <- function(x) if (dirname(x)==x) x else c(basename(x),split_path(dirname(x)))
-workDir<- split_path(getwd()) %>% rev 
-params$ansDir %>% split_path -> ansDir
-union(workDir,ansDir) %>% file.path -> ansDir
 
-paste0("'",union(workDir,ansDir),"'") %>% 
-  paste0(., collapse = ",") %>%
-  paste0("file.path(",.,")") %>%
-  {eval(parse(text=.))} -> workingPath
+paste0(params$baseDir,params$ansDir)->workingPath
 
 # 引入線上繳件資料
 gsSubmit<-gs_key(params$gsFileUpload)
@@ -63,12 +57,22 @@ fileListPurl <- function(ix){
     }
   )
 }
-
+dataSubmit %>%
+  filter(已下載==FALSE) -> 
+  dataSubmitToProcess
+#dataSubmitToProcess <- dataSubmit
+ansRmd <- paste0(workingPath,"/",params$hwcode,"-ans.Rmd")
+paste0(workingPath,"/",dataSubmitToProcess$新檔名) %>%
+  c(.,ansRmd) -> listOfRmds
 purrr::map(1:length(listOfRmds),fileListPurl) -> purlInfo
 
-# 無法purl 記在dataSubmit$cannotPurl
+# 無法purl 記在dataSubmitToProcess$cannotPurl
 purlInfo %>% str_which("has problems") -> cannotPurl_ind
-dataSubmit %>% mutate(cannotPurl=(新檔名 %in% listOfRmds[cannotPurl_ind])) -> dataSubmit
+dataSubmitToProcess %>% mutate(cannotPurl=(新檔名 %in% listOfRmds[cannotPurl_ind])) -> dataSubmitToProcess
+
+dataSubmit %>%
+  filter(已下載==TRUE) %>%
+  bind_rows(dataSubmitToProcess) -> dataSubmit
 dataSubmit %>% gs_edit_cells(gsSubmit,ws="Temp",
                              input=.,
                              anchor="A1") 
@@ -78,8 +82,8 @@ dataSubmit %>% gs_edit_cells(gsSubmit,ws="Temp",
 ## 儲存學生答題ans chunk 為list
 
 ```{r}
-listOfRs <- list_files_with_exts(workingPath,
-                                 "R")
+listOfRs <- str_replace(listOfRmds,
+                        ".Rmd",".R") 
 # 答案R
 ansR <- listOfRs %>% str_which("ans.R") %>%
 {listOfRs[.]}
@@ -123,7 +127,7 @@ validchunkNames <- setdiff(allChunkNames,"") # 會用到的chunk names
 chunkExtraction<-function(listOfRfiles){
   # i<-1
   # Rfile<-ansR
-  # listOfRfiles<-listOfRs
+  #listOfRfiles<-listOfRs
   
   sheet<-list()
   for(j in 1:length(listOfRfiles)){
@@ -159,7 +163,7 @@ chunkExtraction<-function(listOfRfiles){
     #numValidChunks <- length(allChunkNames)
     
     # 將code lines以chunk name出現位置切割
-    1:length(originlines) %>% cut(c(0,chunkDiagnosis$chunkLineNumbers-1,length(originlines))) -> chunkDivisions
+    1:length(originlines) %>% cut(unique(c(0,chunkDiagnosis$chunkLineNumbers-1,length(originlines)))) -> chunkDivisions # unique to prevent first chunkLineNumber is 1 and produce 2 zeros.
     levels(chunkDivisions)-> chunkIntervals 
     
     # 準備有名字的chunk names去取代先前的切割
@@ -200,18 +204,38 @@ return(sheet)
 
 # 所有R檔存在sheet list
 ```{r}
-listOfRs %>% chunkExtraction -> chunkSheet
-save(chunkSheet,file=paste0(workingPath,"/chunkSheet.Rda"))
-```
-# 執行個別chunks
+list_files_with_exts(workingPath,"Rda")-> listOfRdas
+chunkSheetRda<- paste0(workingPath,"/chunkSheet.Rda")
 
-```{r}
+listOfRs %>% chunkExtraction -> chunkSheet2
+
+if(chunkSheetRda %in% listOfRdas){ #若已有先前學生chunk output, 則append新的上去
+  load(chunkSheetRda)
+  append(chunkSheet,chunkSheet2)-> chunkSheet
+} else {
+  chunkSheet <- chunkSheet2
+}
+# 移除舊的ans sheet
 ansR-> Rfile
 ## 產生資料檔
 ## 產生catchList用來對答案
 Rfile %>% basename %>%
   str_replace(".R","") %>%
-  {chunkSheet[[which(names(chunkSheet)==.)]]} -> targetSheet # 找出chunkSheet中屬於Rfile的那張sheet
+  {which((names(chunkSheet)==.))}-> ansSheetLoc
+if(length(ansSheetLoc)>1){
+  sheetToRemove <- ansSheetLoc[-length(ansSheetLoc)] # 需去除的sheet位置
+  chunkSheet[[sheetToRemove]] <- NULL
+}
+
+save(chunkSheet,file=paste0(workingPath,"/chunkSheet.Rda"))
+```
+# 執行個別chunks
+
+```{r}
+Rfile %>% basename %>%
+  str_replace(".R","") %>%
+  {which((names(chunkSheet)==.))} %>% # ans sheet位置
+  {chunkSheet[[.]]} -> targetSheet # 找出chunkSheet中屬於Rfile的那張sheet
   
 targetSheet$ansChunks-> ansChunk
 
@@ -366,5 +390,6 @@ for(i in 1:length(listOfRsNoAns)){
 
 ```{r}
 catchListFun(listOfRsNoAns,chunkSheet,workingPath,dataEnv=dataEnv)
+
 ```
 
