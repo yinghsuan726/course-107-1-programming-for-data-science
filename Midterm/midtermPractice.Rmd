@@ -127,6 +127,9 @@ is.na(aaa)
 記算每個人的**交作業次數**並在**hwGrades**新增**交作業次數**變數來儲存結果。(最後一行請打hwGrades顯示你的全部dataframe，批改程式會去比對hwGrades中的**交作業次數**欄位。) (hint: 利用`is.na()`去判斷每個作業是否有交，接著把每個人在三次作業的is.na判斷之TRUE/FALSE值加起來。) 
 
 ```{r ans14}
+3-(hwGrades$hw1%>%is.na+
+hwGrades$hw2%>%is.na+
+hwGrades$Exercise3%>%is.na)->hwGrades$交作業次數
 ```
 
 ## 1.5 計算平均成績  
