@@ -17,6 +17,9 @@ iPeenData <- read_csv("https://raw.githubusercontent.com/tpemartin/course-107-1-
 ```
 
 ```{r ans1}
+library(stringr)
+library(dplyr)
+str_split_fixed(iPeenData$均消,c(" "),n=4)->iPeenData$均消
 ```
 
 ## 2 
