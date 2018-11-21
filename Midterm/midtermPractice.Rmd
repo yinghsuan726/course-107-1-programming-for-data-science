@@ -137,6 +137,7 @@ hwGrades$Exercise3%>%is.na)->hwGrades$交作業次數
 (hint: 使用`rowSums()`)
 
 ```{r ans15}
+rowSums(hwGrades[,c("hw1","hw2","Exercise3")],na.rm=TRUE)/3->hwGrades$平均成績
 ```
 
 ## 1.6 誰填了問卷？
