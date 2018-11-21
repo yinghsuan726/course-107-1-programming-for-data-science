@@ -112,7 +112,7 @@ classSurvey[isFemale,]->subsample
 **classSurvey**的女同學裡有多少比例有參加"團隊活動"（結果必需是numeric vector含有「有參加」及「沒有參加」的比例值）。
 
 ```{r ans133}
-
+subsample$課外活動%>%str_detect("團隊活動")%>%table/nrow(subsample)
 ```
 
 > 小知識：在資料中，最後女性「有參與」團隊活動的人數是女性「沒有參與」的2.07倍；而男性則是2.4倍。
