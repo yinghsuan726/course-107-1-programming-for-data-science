@@ -40,12 +40,14 @@ hwGrades <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/ma
 請將classSurvey資料中的**性別**變數轉成factor class. 
 
 ```{r ans1b1}
+as.factor(classSurvey$性別) -> classSurvey$性別
 ```
 
 ### 1.Basic(2) 
 使用`str_sub()`將hwGrades資料的**學號**變數取出其第2到4碼。
 
 ```{r ans1b2}
+str_sub(hwGrades$學號,2,4)
 ```
 
 ### 1.Basic(3)
@@ -59,29 +61,43 @@ hwGrades <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/ma
 使用`%in%`來判斷**hwGrades**中的學號，出現在**classSurvey**學號的真/偽（TRUE/FALSE） 。
 
 ```{r ans1b3}
+hwGrades$學號 %in% classSurvey$學號
 ```
 
 ### 1.Basic(4)
 使用`which()`查出學號為"4104d245c7"的學生在**classSurvey**的第幾row。
 
 ```{r ans1b4}
+which(classSurvey$學號 == "4104d245c7")
 ```
 
 ### 1.Basic(5)
 承上題，請接著找出其**Exercise3**成績（hint: 同上我們可以用`which()`查出該位學生在**hwGrades**的第幾個row，接著調出此row的Exercise3值。)
 
 ```{r ans1b5}
+# which(hwGrades$學號=="4104d245c7")
+# 6.666667
+# hwGrades$Exercise3[39]
+hwGrades$Exercise3[which(hwGrades$學號=="4104d245c7")]
+(hwGrades$學號=="4104d245c7") %>%
+  which() %>%
+ { hwGrades$Exercise3[.]}
 ```
 
 
 ## 1.1 男女性比例
 從**classSurvey**中統計本班男女比例。(hint: 使用`table()`得到人數，之後再將它的回傳值除以全班人數，即為比例)
 ```{r ans11}
+table(classSurvey$性別)/nrow(classSurvey)
 ```
 
 ## 1.2 參加「團隊活動」的人數
 承上題。從**classSurvey**裡的**課外活動**變數計算有多少人勾選有參與"團隊活動"。(hint: 使用`str_detect()`來查詢在指定character vector由，某個特殊字眼出現在那幾個element，有出現的會標示TRUE, 沒有則為FALSE。在R裡TRUE有數字1的意思，而FALSE即為0，若要計算TRUE/FALSE logical vector裡TRUE的個數，只需`sum()`。)
 ```{r ans12}
+sum(str_detect(classSurvey$課外活動,"團隊活動"))
+classSurvey$課外活動 %>%
+  str_detect("團隊活動") %>%
+  sum
 ```
 
 ## 1.3 女性的「團隊活動」參與意願
@@ -90,18 +106,25 @@ hwGrades <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/ma
 從**classSuvey$性別**建立一個isFemale的TRUE/FALSE邏輯向量，它用來表示在**classSurvey**裡，觀測值若來自女性則為TRUE，反之為FALSE。（hint: 使用`==`）
 
 ```{r ans131}
+classSurvey$性別=="女" -> isFemale
 ```
 
 ### 1.3.2
 從**classSurvey**選出純女性的樣本取名為subsample（即去除男性的觀測行；但所有變數均需保留）。（hint: 使用1.3.1）
 
 ```{r ans132}
+classSurvey[isFemale,] -> subsample
 ```
 
 ### 1.3.3
 **classSurvey**的女同學裡有多少比例有參加"團隊活動"（結果必需是numeric vector含有「有參加」及「沒有參加」的比例值）。
 
 ```{r ans133}
+table(str_detect(subsample$課外活動,"團隊活動"))/nrow(subsample)
+subsample$課外活動 %>%
+  str_detect("團隊活動") %>%
+  table %>%
+  {./nrow(subsample)}
 ```
 
 > 小知識：在資料中，最後女性「有參與」團隊活動的人數是女性「沒有參與」的2.07倍；而男性則是2.4倍。
@@ -116,6 +139,20 @@ is.na(aaa)
 記算每個人的**交作業次數**並在**hwGrades**新增**交作業次數**變數來儲存結果。(最後一行請打hwGrades顯示你的全部dataframe，批改程式會去比對hwGrades中的**交作業次數**欄位。) (hint: 利用`is.na()`去判斷每個作業是否有交，接著把每個人在三次作業的is.na判斷之TRUE/FALSE值加起來。) 
 
 ```{r ans14}
+3-(is.na(hwGrades$hw1)+
+is.na(hwGrades$hw2)+
+is.na(hwGrades$Exercise3)) -> hwGrades$交作業次數
+
+!is.na(hwGrades$hw1)
+  
+hwGrades %>%
+  select(hw1,hw2,Exercise3) %>%
+  mutate_all(
+    funs(
+      !is.na(.)
+    )
+  ) %>%
+  rowSums -> hwGrades$交作業次數
 ```
 
 ## 1.5 計算平均成績  
@@ -123,6 +160,8 @@ is.na(aaa)
 (hint: 使用`rowSums()`)
 
 ```{r ans15}
+rowSums(hwGrades[,c("hw1","hw2","Exercise3")],na.rm = T)/3->
+  hwGrades$平均成績
 ```
 
 ## 1.6 誰填了問卷？
