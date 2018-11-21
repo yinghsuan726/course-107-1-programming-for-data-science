@@ -1,0 +1,232 @@
+---
+title: "資料科學程式設計（一）期中考"
+output:
+  html_notebook: default
+date: '2018-11-14'
+---
+
+# 電子書
+
+課程電子書： https://bookdown.org/tpemartin/ntpu-programming-for-data-science/
+
+R for Data Science: https://r4ds.had.co.nz/
+
+Dplyr minicourse: https://bookdown.org/PoMingChen/Dplyr_minicourse/
+
+曾意儒，資料科學與R： https://yijutseng.github.io/DataScienceRBook/index.html
+
+```{r}
+library(readr); library(dplyr); library(stringr); library(lubridate)
+```
+
+# 1. 性別差異
+先執行以下程式引入學生的課外活動調查**classSurvey**及作業成績**hwGrades**資料：
+```{r data1}
+classSurvey <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/midterm-data/classSurvey.csv")
+hwGrades <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/midterm-data/hwGrades.csv")
+```
+## 1.Basic 基本程式題
+
+### 1.Basic(1) 
+請將classSurvey資料中的**性別**變數轉成factor class. 
+
+```{r ans1b1}
+as.factor(classSurvey$性別)
+```
+
+### 1.Basic(2) 
+使用`str_sub()`將hwGrades資料的**學號**變數取出其第2到4碼。
+
+```{r ans1b2}
+str_sub(hwGrades$學號,2,4)
+```
+
+### 1.Basic(3)
+日常生活我們常會進行「A 是否屬於 B」的詢問，如「飲料店工讀生 是否屬於 經一B學生」, 在R裡我們可以用`A %in% B`的語法來得到回答，執行以下程式來理解`%in%`（即屬於）的用法：
+```{r}
+經一B學生 <- c("小花","小咪","小李")
+飲料店工讀生 <- c("陳小明","小李")
+飲料店工讀生 %in% 經一B學生
+```
+
+使用`%in%`來判斷**hwGrades**中的學號，出現在**classSurvey**學號的真/偽（TRUE/FALSE） 。
+
+```{r ans1b3}
+hwGrades$學號 %in% classSurvey$學號
+```
+
+### 1.Basic(4)
+使用`which()`查出學號為"4104d245c7"的學生在**classSurvey**的第幾row。
+
+```{r ans1b4}
+which(classSurvey$學號=="4104d245c7")
+```
+
+### 1.Basic(5)
+承上題，請接著找出其**Exercise3**成績（hint: 同上我們可以用`which()`查出該位學生在**hwGrades**的第幾個row，接著調出此row的Exercise3值。)
+
+```{r ans1b5}
+which(hwGrades$學號=="4104d245c7")-> loc
+hwGrades[loc,]$Exercise3
+```
+
+
+## 1.1 男女性比例
+從**classSurvey**中統計本班男女比例。(hint: 使用`table()`得到人數，之後再將它的回傳值除以全班人數，即為比例)
+```{r ans11}
+classSurvey$性別 %>% table() %>%
+  {./sum(.)} -> tbSex
+tbSex
+```
+
+## 1.2 參加「團隊活動」的人數
+承上題。從**classSurvey**裡的**課外活動**變數計算有多少人勾選有參與"團隊活動"。(hint: 使用`str_detect()`來查詢在指定character vector由，某個特殊字眼出現在那幾個element，有出現的會標示TRUE, 沒有則為FALSE。在R裡TRUE有數字1的意思，而FALSE即為0，若要計算TRUE/FALSE logical vector裡TRUE的個數，只需`sum()`。)
+```{r ans12}
+classSurvey$課外活動 %>%
+  str_detect("團隊活動") -> hasGroupActivity
+hasGroupActivity %>%  sum
+```
+
+## 1.3 女性的「團隊活動」參與意願
+
+### 1.3.1
+從**classSuvey$性別**建立一個isFemale的TRUE/FALSE邏輯向量，它用來表示在**classSurvey**裡，觀測值若來自女性則為TRUE，反之為FALSE。（hint: 使用`==`）
+
+```{r ans131}
+isFemale <- classSurvey$性別=="女"
+```
+
+### 1.3.2
+從**classSurvey**選出純女性的樣本取名為subsample（即去除男性的觀測行；但所有變數均需保留）。（hint: 使用1.3.1）
+
+```{r ans132}
+classSurvey[isFemale,]->subsample
+```
+
+### 1.3.3
+**classSurvey**的女同學裡有多少比例有參加"團隊活動"（結果必需是numeric vector含有「有參加」及「沒有參加」的比例值）。
+
+```{r ans133}
+subsample$課外活動[isFemale] %>% #只選女性看她們的課外活動
+  str_detect("團隊活動") %>% #找出有團隊活動的
+  table(.)/sum(isFemale)->tbFemale
+tbFemale
+```
+
+> 小知識：在資料中，最後女性「有參與」團隊活動的人數是女性「沒有參與」的2.07倍；而男性則是2.4倍。
+
+## 1.4 交作業次數  
+在**hwGrades**中NA表示沒交作業，我們可以用`is.na()`來判斷某向量物件裡，每個元素是否為NA，例如： 
+```{r}
+aaa <- c("a","b",NA)
+is.na(aaa)
+```
+
+記算每個人的**交作業次數**並在**hwGrades**新增**交作業次數**變數來儲存結果。(最後一行請打hwGrades顯示你的全部dataframe，批改程式會去比對hwGrades中的**交作業次數**欄位。) (hint: 利用`is.na()`去判斷每個作業是否有交，接著把每個人在三次作業的is.na判斷之TRUE/FALSE值加起來。) 
+
+```{r ans14}
+hwGrades %>%
+  select(c(2:4)) %>%
+  mutate_all(
+    funs(
+      !is.na(.)
+    )
+  ) -> hwGrades2
+hwGrades2 %>% rowSums() -> hwGrades$交作業次數
+hwGrades
+```
+
+## 1.5 計算平均成績  
+在**hwGrades**記算每個人的**平均成績**並在**hwGrades**新增**平均成績**變數來儲存結果；注意NA視同0分。(最後一行請打hwGrades，批改程式會去比對hwGrades中的**平均成績**欄位。)
+(hint: 使用`rowSums()`)
+
+```{r ans15}
+hwGrades %>%
+  select(hw1,hw2,Exercise3) %>%
+  {rowSums(.,na.rm=T)} -> 總成績 
+hwGrades$平均成績 <- 總成績/3
+hwGrades
+```
+
+## 1.6 誰填了問卷？
+從**hwGrades**資料中選出那些**學號**有出現在**classSurvey**資料**學號**中的子樣本。（結果必需是個dataframe，它有和**hwGrades**一樣的column數目，但row只包含那些符合條件的觀測樣本；row個數會縮小。）(hint: 參見1.Basic(3)題)
+
+```{r ans16}
+hwGrades$學號 %in% classSurvey$學號 -> isSurveyed
+hwGradesSubsample <- hwGrades[isSurveyed,]
+```
+
+> 以下各題均以「有填」classSurvey的人為主，即hwGrades的縮小子樣本，我們稱此子樣本為hwGradeSubsample（你不一定要用這個名稱，但後面各題請把hwGradeSubsample替換成你用的dataframe名稱）。
+
+## 1.7 性別邏輯變數
+請在**hwGradesSubsample**創造一個名稱為**女性**的變數，其為T/F logical vector, TRUE為女性。(最後一行請打hwGradesSubsample，批改程式會去比對hwGradesSubsample中的**女性**欄位。)
+(hint: 使用`%in%`找出**classSurvey**屬於女性的學號)
+
+```{r ans17}
+classSurvey$學號[isFemale] -> 女性學號
+hwGradesSubsample$女性 <- hwGradesSubsample$學號 %in% 女性學號
+hwGradesSubsample
+```
+
+## 1.8 性別與學業表現：男性
+依**hwGradesSubsample**的**平均成績**及**女性**變數來記算出男性的「平均」**平均成績**。(最後一行必需出現此平均值)
+```{r ans18}
+hwGradesSubsample$平均成績[(hwGradesSubsample$女性==F)] %>%
+  mean
+```
+
+> 小知識：資料中女性平均成績表現高於男性近2.39分（滿分10分）
+
+## 1.9 團隊活動與學業表現：女性
+請由**hwGradesSubsample**中計算女性「有參與」團隊活動的平均**平均成績**值。(最後一行必需出現此平均值) (hint: 可參考1.7來確認**hwGradesSubsample**有誰有參與團隊活動)
+```{r ans19}
+classSurvey$學號[hasGroupActivity] -> 有團隊的學號
+hwGradesSubsample$有團活 <- hwGradesSubsample$學號 %in% 有團隊的學號
+hwGradesSubsample$平均成績[(hwGradesSubsample$女性==T & hwGradesSubsample$有團活==T)] %>%
+  mean -> meanGradeFemaleWithAct
+meanGradeFemaleWithAct
+```
+
+> 小知識：資料中女性「沒有參與」團隊活動的成績表現平均高於「有參與」的女性約2.14分；而這差距在男生中只有約1.74分。
+
+# 2. 誰較早交作業？
+請先執行以下程式引入學生交作業時間**hwSubmit**的資料：
+```{r data2}
+hwSubmit <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/midterm-data/hwSubmit.csv")
+```
+
+## 2.1 class檢查
+請將**hwSubmit**的所有變數調整成正確的class，其中**Timestamp**為UTC時區，請將它轉成台灣Asia/Taipei時區。（最後一行請打hwSubmit, 程式將檢查裡面所有變數的class是否正確。）
+```{r ans21}
+hwSubmit %>%
+  mutate(
+    Timestamp=ymd_hms(Timestamp),
+    Timestamp=with_tz(Timestamp,tzone="Asia/Taipei"),
+    學號=as.character(學號)
+  ) -> hwSubmit
+```
+
+## 2.2 交作業時間: Exercise3
+取出**hwSubmit**中**作業代碼**為Exercise3的子樣本，稱它為**hwSubmit3**。Exercise3的截止時日是台灣時間2018-11-06 00:00:00，請計算每個人該作業離截止時日還有多少小時。（請於**hwSubmit3**中創一個新變數**截止時差**存入每個人的時差小時值，程式最後一行請打hwSubmit3，程式將檢查裡面的**截止時差**是否正確。）(hint: `difftime()`)
+```{r ans22}
+deadline3 <- ymd_hms("2018-11-06 00:00:00",tz="Asia/Taipei")
+hwSubmit3 <- hwSubmit[hwSubmit$作業代碼=="Exercise3",]
+hwSubmit3 %>%
+  mutate(
+    截止時差=difftime(deadline3,Timestamp,units="hours")
+  ) -> 
+  hwSubmit3
+```
+
+## 2.3 性別差異
+**hwSubmit3**中, 女性「平均」截止時差比男性多多少小時呢？（最後一行答案必須女生減去男性的值。）
+
+```{r ans23}
+hwSubmit3$截止時差[hwSubmit3$女性==T] %>% mean -> FemaleTime
+hwSubmit3$截止時差[hwSubmit3$女性==F] %>% mean -> MaleTime
+FemaleTime-MaleTime -> dftime1
+dftime1
+```
+
+> 小知識：第一次作業男性平均早女性7.5小時交，第二次作業早35.5小時。
+

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+<meta name="date" content="2018-11-14" />
+
+<title>資料科學程式設計（一）期中考</title>
+
+<script src="midterm_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="midterm_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="midterm_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="midterm_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="midterm_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="midterm_files/navigation-1.1/tabsets.js"></script>
+<link href="midterm_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="midterm_files/highlightjs-9.12.0/highlight.js"></script>
+<script src="midterm_files/clipboard-1.7.1/clipboard.min.js"></script>
+<link href="midterm_files/primer-tooltips-1.4.0/build.css" rel="stylesheet" />
+<link href="midterm_files/klippy-0.0.0.9500/css/klippy.min.css" rel="stylesheet" />
+<script src="midterm_files/klippy-0.0.0.9500/js/klippy.min.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">資料科學程式設計（一）期中考</h1>
+<h4 class="date"><em>2018-11-14</em></h4>
+
+</div>
+
+
+<div class="section level1">
+<h1>電子書</h1>
+<p>課程電子書： <a href="https://bookdown.org/tpemartin/ntpu-programming-for-data-science/" class="uri">https://bookdown.org/tpemartin/ntpu-programming-for-data-science/</a></p>
+<p>R for Data Science: <a href="https://r4ds.had.co.nz/" class="uri">https://r4ds.had.co.nz/</a></p>
+<p>Dplyr minicourse: <a href="https://bookdown.org/PoMingChen/Dplyr_minicourse/" class="uri">https://bookdown.org/PoMingChen/Dplyr_minicourse/</a></p>
+<p>曾意儒，資料科學與R： <a href="https://yijutseng.github.io/DataScienceRBook/index.html" class="uri">https://yijutseng.github.io/DataScienceRBook/index.html</a></p>
+<pre class="r"><code>library(readr); library(dplyr); library(stringr); library(lubridate)</code></pre>
+</div>
+<div class="section level1">
+<h1>1. 性別差異</h1>
+<p>先執行以下程式引入學生的課外活動調查<strong>classSurvey</strong>及作業成績<strong>hwGrades</strong>資料：</p>
+<pre class="r"><code>classSurvey &lt;- read_csv(&quot;https://raw.githubusercontent.com/tpemartin/github-data/master/midterm-data/classSurvey.csv&quot;)
+hwGrades &lt;- read_csv(&quot;https://raw.githubusercontent.com/tpemartin/github-data/master/midterm-data/hwGrades.csv&quot;)</code></pre>
+<div id="basic-" class="section level2">
+<h2>1.Basic 基本程式題</h2>
+<div id="basic1" class="section level3">
+<h3>1.Basic(1)</h3>
+<p>請將classSurvey資料中的<strong>性別</strong>變數轉成factor class.</p>
+</div>
+<div id="basic2" class="section level3">
+<h3>1.Basic(2)</h3>
+<p>使用<code>str_sub()</code>將hwGrades資料的<strong>學號</strong>變數取出其第2到4碼。</p>
+</div>
+<div id="basic3" class="section level3">
+<h3>1.Basic(3)</h3>
+<p>日常生活我們常會進行「A 是否屬於 B」的詢問，如「飲料店工讀生 是否屬於 經一B學生」, 在R裡我們可以用<code>A %in% B</code>的語法來得到回答，執行以下程式來理解<code>%in%</code>（即屬於）的用法：</p>
+<pre class="r"><code>經一B學生 &lt;- c(&quot;小花&quot;,&quot;小咪&quot;,&quot;小李&quot;)
+飲料店工讀生 &lt;- c(&quot;陳小明&quot;,&quot;小李&quot;)
+飲料店工讀生 %in% 經一B學生</code></pre>
+<p>使用<code>%in%</code>來判斷<strong>hwGrades</strong>中的學號，出現在<strong>classSurvey</strong>學號的真/偽（TRUE/FALSE） 。</p>
+</div>
+<div id="basic4" class="section level3">
+<h3>1.Basic(4)</h3>
+<p>使用<code>which()</code>查出學號為“4104d245c7”的學生在<strong>classSurvey</strong>的第幾row。</p>
+</div>
+<div id="basic5" class="section level3">
+<h3>1.Basic(5)</h3>
+<p>承上題，請接著找出其<strong>Exercise3</strong>成績（hint: 同上我們可以用<code>which()</code>查出該位學生在<strong>hwGrades</strong>的第幾個row，接著調出此row的Exercise3值。)</p>
+</div>
+</div>
+<div class="section level2">
+<h2>1.1 男女性比例</h2>
+<p>從<strong>classSurvey</strong>中統計本班男女比例。(hint: 使用<code>table()</code>得到人數，之後再將它的回傳值除以全班人數，即為比例)</p>
+</div>
+<div class="section level2">
+<h2>1.2 參加「團隊活動」的人數</h2>
+<p>承上題。從<strong>classSurvey</strong>裡的<strong>課外活動</strong>變數計算有多少人勾選有參與“團隊活動”。(hint: 使用<code>str_detect()</code>來查詢在指定character vector由，某個特殊字眼出現在那幾個element，有出現的會標示TRUE, 沒有則為FALSE。在R裡TRUE有數字1的意思，而FALSE即為0，若要計算TRUE/FALSE logical vector裡TRUE的個數，只需<code>sum()</code>。)</p>
+</div>
+<div class="section level2">
+<h2>1.3 女性的「團隊活動」參與意願</h2>
+<div id="section" class="section level3">
+<h3>1.3.1</h3>
+<p>從<strong>classSuvey$性別</strong>建立一個isFemale的TRUE/FALSE邏輯向量，它用來表示在<strong>classSurvey</strong>裡，觀測值若來自女性則為TRUE，反之為FALSE。（hint: 使用<code>==</code>）</p>
+</div>
+<div id="section-1" class="section level3">
+<h3>1.3.2</h3>
+<p>從<strong>classSurvey</strong>選出純女性的樣本取名為subsample（即去除男性的觀測行；但所有變數均需保留）。（hint: 使用1.3.1）</p>
+</div>
+<div id="section-2" class="section level3">
+<h3>1.3.3</h3>
+<p><strong>classSurvey</strong>的女同學裡有多少比例有參加“團隊活動”（結果必需是numeric vector含有「有參加」及「沒有參加」的比例值）。</p>
+<blockquote>
+<p>小知識：在資料中，最後女性「有參與」團隊活動的人數是女性「沒有參與」的2.07倍；而男性則是2.4倍。</p>
+</blockquote>
+</div>
+</div>
+<div class="section level2">
+<h2>1.4 交作業次數</h2>
+<p>在<strong>hwGrades</strong>中NA表示沒交作業，我們可以用<code>is.na()</code>來判斷某向量物件裡，每個元素是否為NA，例如：</p>
+<pre class="r"><code>aaa &lt;- c(&quot;a&quot;,&quot;b&quot;,NA)
+is.na(aaa)</code></pre>
+<p>記算每個人的<strong>交作業次數</strong>並在<strong>hwGrades</strong>新增<strong>交作業次數</strong>變數來儲存結果。(最後一行請打hwGrades顯示你的全部dataframe，批改程式會去比對hwGrades中的<strong>交作業次數</strong>欄位。) (hint: 利用<code>is.na()</code>去判斷每個作業是否有交，接著把每個人在三次作業的is.na判斷之TRUE/FALSE值加起來。)</p>
+</div>
+<div class="section level2">
+<h2>1.5 計算平均成績</h2>
+<p>在<strong>hwGrades</strong>記算每個人的<strong>平均成績</strong>並在<strong>hwGrades</strong>新增<strong>平均成績</strong>變數來儲存結果；注意NA視同0分。(最後一行請打hwGrades，批改程式會去比對hwGrades中的<strong>平均成績</strong>欄位。) (hint: 使用<code>rowSums()</code>)</p>
+</div>
+<div class="section level2">
+<h2>1.6 誰填了問卷？</h2>
+<p>從<strong>hwGrades</strong>資料中選出那些<strong>學號</strong>有出現在<strong>classSurvey</strong>資料<strong>學號</strong>中的子樣本。（結果必需是個dataframe，它有和<strong>hwGrades</strong>一樣的column數目，但row只包含那些符合條件的觀測樣本；row個數會縮小。）(hint: 參見1.Basic(3)題)</p>
+<blockquote>
+<p>以下各題均以「有填」classSurvey的人為主，即hwGrades的縮小子樣本，我們稱此子樣本為hwGradeSubsample（你不一定要用這個名稱，但後面各題請把hwGradeSubsample替換成你用的dataframe名稱）。</p>
+</blockquote>
+</div>
+<div class="section level2">
+<h2>1.7 性別邏輯變數</h2>
+<p>請在<strong>hwGradesSubsample</strong>創造一個名稱為<strong>女性</strong>的變數，其為T/F logical vector, TRUE為女性。(最後一行請打hwGradesSubsample，批改程式會去比對hwGradesSubsample中的<strong>女性</strong>欄位。) (hint: 使用<code>%in%</code>找出<strong>classSurvey</strong>屬於女性的學號)</p>
+</div>
+<div class="section level2">
+<h2>1.8 性別與學業表現：男性</h2>
+<p>依<strong>hwGradesSubsample</strong>的<strong>平均成績</strong>及<strong>女性</strong>變數來記算出男性的「平均」<strong>平均成績</strong>。(最後一行必需出現此平均值)</p>
+<blockquote>
+<p>小知識：資料中女性平均成績表現高於男性近2.39分（滿分10分）</p>
+</blockquote>
+</div>
+<div class="section level2">
+<h2>1.9 團隊活動與學業表現：女性</h2>
+<p>請由<strong>hwGradesSubsample</strong>中計算女性「有參與」團隊活動的平均<strong>平均成績</strong>值。(最後一行必需出現此平均值) (hint: 可參考1.7來確認<strong>hwGradesSubsample</strong>有誰有參與團隊活動)</p>
+<blockquote>
+<p>小知識：資料中女性「沒有參與」團隊活動的成績表現平均高於「有參與」的女性約2.14分；而這差距在男生中只有約1.74分。</p>
+</blockquote>
+</div>
+</div>
+<div class="section level1">
+<h1>2. 誰較早交作業？</h1>
+<p>請先執行以下程式引入學生交作業時間<strong>hwSubmit</strong>的資料：</p>
+<pre class="r"><code>hwSubmit &lt;- read_csv(&quot;https://raw.githubusercontent.com/tpemartin/github-data/master/midterm-data/hwSubmit.csv&quot;)</code></pre>
+<div id="class" class="section level2">
+<h2>2.1 class檢查</h2>
+<p>請將<strong>hwSubmit</strong>的所有變數調整成正確的class，其中<strong>Timestamp</strong>為UTC時區，請將它轉成台灣Asia/Taipei時區。（最後一行請打hwSubmit, 程式將檢查裡面所有變數的class是否正確。）</p>
+</div>
+<div id="-exercise3" class="section level2">
+<h2>2.2 交作業時間: Exercise3</h2>
+<p>取出<strong>hwSubmit</strong>中<strong>作業代碼</strong>為Exercise3的子樣本，稱它為<strong>hwSubmit3</strong>。Exercise3的截止時日是台灣時間2018-11-06 00:00:00，請計算每個人該作業離截止時日還有多少小時。（請於<strong>hwSubmit3</strong>中創一個新變數<strong>截止時差</strong>存入每個人的時差小時值，程式最後一行請打hwSubmit3，程式將檢查裡面的<strong>截止時差</strong>是否正確。）(hint: <code>difftime()</code>)</p>
+</div>
+<div id="-1" class="section level2">
+<h2>2.3 性別差異</h2>
+<p><strong>hwSubmit3</strong>中, 女性「平均」截止時差比男性多多少小時呢？（最後一行答案必須女生減去男性的值。）</p>
+<blockquote>
+<p>小知識：第一次作業男性平均早女性7.5小時交，第二次作業早35.5小時。</p>
+</blockquote>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
