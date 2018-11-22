@@ -45,7 +45,7 @@ results %>%
   {rowSums(.,na.rm=T)}*5.5 -> results$成績
 ```
 
-## Step 3: 更新線上成績
+## Step 3: 更新線上成績 及 記錄新檔名
 ```{r}
 #gs_auth()
 gs_key("16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA") -> gsKey
@@ -56,89 +56,23 @@ results$新檔名 <- paste0(params$wsName,"_",nrow(dataSubmit)+1,".RMD")
 
 results$新檔名 %>%
   {file.path(workingPath,"AFTER_GRADING",.)} %>%
-file.copy(file.path(workingPath,paste0(results$原始檔案,".RMD")),.)
-```
-# 檔名以排名變更
-```{r}
-dataSubmit2 %>% 
-  filter(!is.na(成績)) -> dataSubmit3
-dataSubmit3 %>%  
-{.$listOfRMDs} -> filesToCopy
-# copy to NewNamePath
-file.path(workingPath,"AFTER_GRADING") -> NewNamePath
-NewNamePath %T>%
-  {if(!dir.exists(.)) dir.create(.)} %>%
-  {file.copy(filesToCopy,to=.,overwrite = T)}
+file.copy(file.path(workingPath,paste0(results$原始檔案,".RMD")),.,overwrite = T)
 
-# Rename Files
-oldNames<-file.path(NewNamePath,basename(dataSubmit3$listOfRMDs))
-newNames<-file.path(NewNamePath,dataSubmit3$新檔名)
-file.rename(oldNames,newNames)
+(dataSubmit$學號==results$學號) %>%
+  {dataSubmit[!.,]} -> dataSubmit
 
 dataSubmit %>%
-  left_join(
-    dataSubmit3 %>% 
-      select(學號,新檔名),
-    by="學號"
-  ) -> dataSubmit4
+  bind_rows(results) -> dataSubmit
 ```
+
+# 檔名以排名變更
 
 ```{r}
-gs_key(params$gskey) -> gsPrivate
-if(params$hwcode %in% gsPrivate$ws$ws_title){
-  dataSubmit2 %>% gs_edit_cells(gsPrivate,ws=params$hwcode,
-                            input=.,
-                            anchor="A1")
-} else {
-  dataSubmit2 %>% gs_ws_new(gsPrivate,ws=params$hwcode,
-                            input=.,
-                            anchor="A1")
-}
-
-```
-
-## 複製有問題RMD
-
-```{r, eval=F}
-# copy to NewNamePath
-ProblemFilesToCopy <- dataSubmit2 %>% 
-  filter(is.na(成績)) %>%
-  {.$listOfRMDs}
-file.path(workingPath,"ProblemRmds") -> NewNamePath
-NewNamePath %T>%
-  {if(!dir.exists(.)) dir.create(.)} %>%
-  {file.copy(ProblemFilesToCopy,to=.,overwrite = T)}
-
-```
-
-
-## 準備公開成績資料
-```{r 上傳GS, eval=F}
-wsNameTemp <- paste0(params$hwcode,"-",Sys.Date())
-gsPublic<-gs_key(params$gsPublicKey)
-gsCorrected<-gs_key(params$gskey)
-
-if(wsNameTemp %in% gs_ws_ls(gsCorrected)){
-  gs_edit_cells(gsCorrected,ws=wsNameTemp,
-                input=mergedResults, col_names = TRUE,
+gsKey$ws$ws_title %>% grep(params$wsName,.,ignore.case = T) %>%
+  gsKey$ws$ws_title[.] %>%
+  gs_edit_cells(gsKey,ws=.,
+                input=dataSubmit,
                 anchor="A1")
-  gs_edit_cells(gsPublic,ws=wsNameTemp,
-                input=publicResults, col_names = TRUE,
-                anchor="A1")  
-} else {
-  gs_ws_new(gsCorrected,ws=wsNameTemp,
-            input=mergedResults, col_names = TRUE,
-            anchor="A1")  
-  gs_ws_new(gsPublic,ws=wsNameTemp,
-              input=publicResults, col_names = TRUE,
-              anchor="A1")
 
-}
-
-mergedResults %>% filter(上傳檔正常==FALSE) %>%
-  {paste0(workingPath,"/",.$新檔名)} -> problemFiles
-#file.remove(paste0(workingPath,"/problem"))
-problemDir<-paste0(workingPath,"/problem")
-file.copy(problemFiles,to=problemDir)
-#file.remove(listOfRs)
 ```
+
