@@ -1,0 +1,82 @@
+---
+title: "個別檔案處理"
+author: "林茂廷"
+date: "11/21/2018"
+output: html_document
+params:
+  filepath: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/Midterm/ans/MIDTERM-410773096.RMD"
+  stepYfuns: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/StepY_funs.Rda"
+  ansFilePath: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/Midterm/ans/MIDTERM-ANS.RMD"
+  assistDir: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/Midterm/ans/assist"
+  dataFiles: ["CLASSSURVEY.CSV","HWGRADES.CSV","HWSUBMIT.CSV"]
+  chunkSheetFile: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/Midterm/ans/INFO/CHUNKSHEET.RDA"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r import g sheets}
+library(dplyr)
+library(googlesheets)
+library(lubridate)
+library(stringr)
+library(readr)
+library(stringr)
+library(googledrive)
+library(tools)
+library(purrr)
+library(rlang)
+#gs_auth(new_user = TRUE)
+```
+
+```{r}
+load(params$stepYfuns)
+```
+
+
+```{r}
+params$filepath %>%
+  fileListPurl2 -> RfilePath
+```
+
+```{r}
+RfilePath %>%
+  chunkExtraction() -> chunkSheet
+```
+
+```{r}
+# 創造assist folder
+dir.create(params$assistDir)
+
+# 暫時複製資料檔到wd
+map(params$dataFiles,function(data_i) {data_i %>%
+  file.path(dirname(params$ansFilePath),.) %>%
+  file.copy(getwd(),overwrite = T)})
+
+
+params$ansFilePath %>% fileListPurl2() %>%
+  chunkExtraction() -> ansChunk
+basename(params$ansFilePath) %>%
+  str_replace(".RMD","") %>% #Extract midterm-ans name
+  ansChunk[[.]] %>%
+  dataEnvNew(params$assistDir) -> dataEnvFilePath
+```
+
+```{r}
+load(dataEnvFilePath)
+```
+
+```{r}
+basename(params$ansFilePath) %>%
+  str_replace(".RMD","") %>%
+  {ansChunk[[.]]}->ansChunk
+RfilePath %>% markOff2(params,ansChunk)
+```
+
+```{r}
+RfilePath %>%
+  catchListFun2(chunkSheet,dataEnv=dataEnv)
+```
+
