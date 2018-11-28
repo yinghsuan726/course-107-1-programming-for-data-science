@@ -194,7 +194,12 @@ hwSubmit <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/ma
 ## 2.2 交作業時間: Exercise3
 取出**hwSubmit**中**作業代碼**為Exercise3的子樣本，稱它為**hwSubmit3**。Exercise3的截止時日是台灣時間2018-11-06 00:00:00，請計算每個人該作業離截止時日還有多少小時。（請於**hwSubmit3**中創一個新變數**截止時差**存入每個人的時差小時值，程式最後一行請打hwSubmit3，程式將檢查裡面的**截止時差**是否正確。）(hint: `difftime()`)
 ```{r ans22}
-hwSubmit[(hwSubmit$hkxd)]
+hwSubmit[(hwSubmit$作業代碼=="Exercise3"),]
+deadline<-ymd_hms("2018-11-06
+                  00:00:00",tz="Asia/Taipei")
+hwSubmit[(hwSubmit$作業代碼=="Exercise3"),]$Timestamp->aa
+with_tz(aa,tzone="Asia/Taipei")
+
 ```
 
 ## 2.3 性別差異
