@@ -87,7 +87,6 @@ table(classSurvey$性別)/nrow(classSurvey)
 承上題。從**classSurvey**裡的**課外活動**變數計算有多少人勾選有參與"團隊活動"。(hint: 使用`str_detect()`來查詢在指定character vector由，某個特殊字眼出現在那幾個element，有出現的會標示TRUE, 沒有則為FALSE。在R裡TRUE有數字1的意思，而FALSE即為0，若要計算TRUE/FALSE logical vector裡TRUE的個數，只需`sum()`。)
 ```{r ans12}
 str_detect(classSurvey$課外活動,"團隊活動")->a
-sum(a)
 
 classSurvey$課外活動%>%str_detect("團隊活動")%>%sum
 ```
@@ -183,12 +182,16 @@ mean(hwGradeSubsample$平均成績[(hwGradeSubsample$女性==FALSE)])
 # 2. 誰較早交作業？
 請先執行以下程式引入學生交作業時間**hwSubmit**的資料：
 ```{r data2}
-hwSubmit <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/midterm-data/hwSubmit.csv")
+hwSubmit <- ("https://raw.githubusercontent.com/tpemartin/github-data/master/midterm-data/hwSubmit.csv")
 ```
 
 ## 2.1 class檢查
 請將**hwSubmit**的所有變數調整成正確的class，其中**Timestamp**為UTC時區，請將它轉成台灣Asia/Taipei時區。（最後一行請打hwSubmit, 程式將檢查裡面所有變數的class是否正確。）
 ```{r ans21}
+hwSubmit[(hwSubmit$作業代碼=="Exercise3"),]
+deadline<-ymd_hms("2018-11-06 00:00:00",tz="Asia/Taipei")
+hwSubmit[(hwSubmit$作業代碼=="Exercise3"),]$Timestamp->a
+deadline-a
 ```
 
 ## 2.2 交作業時間: Exercise3
