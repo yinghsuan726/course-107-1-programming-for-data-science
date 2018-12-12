@@ -1,15 +1,16 @@
 ---
-title: "Convert Rmd to R"
+title: "Convert RMD to R"
 author: "林茂廷"
 output: html_document
 params:
   workingPath: "/Midterm/ans" 
   deadline: 2018-11-12
-  hwcode: Miterm
+  hwcode: Midterm
   baseDir: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/"
   gsFileNameMapping: "1J9A6We6cdDfOT-11gBgbHC9Qzqu0d457aquy5k1IOCc"
   gsClassInfo: "1E1P2na_-iRzczWxRVa09ldjE9NMidJOX0RGw9muhZfw"
   gsFileUpload: "1G8NjBYgWcQFVT8ms4c5HmWp19V_DvJ5u1rEKVNLRmZs"
+  gsHWExams: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
   markOffItems: NULL
 ---
 
@@ -33,10 +34,11 @@ library(purrr)
 library(rlang)
 #gs_auth(new_user = TRUE)
 
-paste0(".",params$workingPath) -> workingPath
+paste0(params$baseDir,params$workingPath) -> workingPath
+load(file.path(params$baseDir,"StepY_funs.Rda"))
 ```
 
-# Convert Rmd to R
+# Working path檔名全大寫
 
 ```{r}
 list.files(workingPath) %>% # 檔名全大寫
@@ -45,82 +47,162 @@ list.files(workingPath) %>% # 檔名全大寫
     to=paste0(workingPath,"/",toupper(.))
   )} 
 
-# RMD 改 Rmd
 listOfRMDs <- list_files_with_exts(workingPath,"RMD")
-listOfRMDs %>%
-  {file.rename(
-    .,
-    to=str_replace(.,".RMD",".Rmd")
-  )} 
-listOfRmds <- list_files_with_exts(workingPath,"Rmd")
 ```
 
-**purlInfo** shows if a file fails to be purled. 
+# 由RMD生成R 
 
 ```{r purl to R files, message=F}
-fileListPurl <- function(ix){
-  tryCatch({
-    knitr::purl(listOfRmds[ix],output=str_replace(listOfRmds[ix],"Rmd","R"))
-  },
-    error=function(e){
-      print(paste0(listOfRmds[ix]," has problems."))
-    }
-  )
-}
 
-ansRmd <- paste0(workingPath,"/",params$hwcode,"-ANS.Rmd")
+ansRMD <- paste0(workingPath,"/",params$hwcode,"-ANS.RMD")
 
-purrr::map(1:length(listOfRmds),fileListPurl) -> purlInfo
+purrr::map(1:length(listOfRMDs),fileListPurl,listOfRMDs) -> purlInfo
 
 dataSubmitToProcess <- data.frame(
-  listOfRmds=listOfRmds,
-  cannotPurl=(purlInfo %>% str_detect("has problems"))
+  listOfRMDs=listOfRMDs,
+  canProduceR=!(purlInfo %>% str_detect("has problems")),
+  shortNames=(listOfRMDs %>% basename %>%
+                str_replace("\\.(RMD)",""))
 )
 
 ```
 
-## 儲存學生答題ans chunk 為list
+## 建立list和shortname(無路徑、副檔名)
 
 ```{r}
 listOfRs <- list_files_with_exts(workingPath,"R") 
-# 答案R
+# 答案R RMD
 ansR <- listOfRs %>% str_which("ANS.R") %>%
-{listOfRs[.]}
-# 學生R
+  {listOfRs[.]}
+ansR %>% str_replace("\\.R","\\.RMD") -> ansRMD
+ansShortname<- ansR %>% basename %>% str_replace("(\\.R)","") 
+# 學生R RMD
 studentRs <- setdiff(listOfRs,ansR)
+studentRs %>% str_replace("\\.R","\\.RMD") -> studentRMDs
+studentShortname<- studentRs %>% basename %>% str_replace("(\\.R)","") 
 ```
 
-## Prepare chunk names
+## 由答案檔ansR取得所有chunk名稱
 
 ```{r chunk name locator}
-codeChunkName <- function(codeNameLine){
-  #ansR %>% readLines -> codeNameLine
-  
-  # 取出有名chunk的line numbers
-  codeNameLine %>% str_which("## ----") ->
-    namedChunkLineNumbers
-  # 將#,-與空白格去除
-  codeNameLine[namedChunkLineNumbers] %>% 
-    str_replace_all("#|-|\\s","") -> nameFinal
-
-  results<-list(chunkNames=nameFinal,
-                chunkLineNumbers=namedChunkLineNumbers)
-  return(results)
-}
-
 ansR %>% readLines %>%
   codeChunkName %>%
   .$chunkNames -> allChunkNames
-
-ansR %>% str_replace("\\.R","\\.Rmd") -> ansRmd
-
-validchunkNames <- setdiff(allChunkNames,"") # 會用到的chunk names
 ```
 
-## chunkExtraction():
-可把R檔用chunk拆解成一塊塊的code lines
+## 所有R檔chunk區塊拆解存在chunkSheet (list class)
+```{r}
+#list_files_with_exts(workingPath,"RDA")-> listOfRdas
+#chunkSheetRda<- paste0(workingPath,"/CHUNKSHEET.RDA")
+
+listOfRs %>% chunkExtraction -> chunkSheet
+dir.create(file.path(workingPath,"info"))
+save(chunkSheet,file=file.path(workingPath,"info","CHUNKSHEET.RDA"))
+```
+
+# 由答案R檔產生data environment
 
 ```{r}
+chunkSheet[[ansShortname]]-> ansSheet # 找出chunkSheet中屬於ans的那張sheet
+# ansSheet$ansChunks-> ansChunk
+
+## 建立data environment
+infoPath<-file.path(workingPath,"info")
+dataEnvNew(ansSheet,infoPath)
+```
+
+## 去除學生R檔資料呼叫行
+
+```{r}
+load(file.path(infoPath,"dataEnv.Rda"))
+listOfRs %>% setdiff(ansR) %>%
+  markOff(params,ansSheet,dataEnv)
+```
+
+
+# 產生批改RDA：catchList
+
+```{r}
+## ansR
+catchListFun(ansR,chunkSheet,workingPath)
+
+## studentRs
+catchListFun(studentRs,chunkSheet,workingPath,dataEnv=dataEnv)
+```
+
+## 記錄執行結果
+```{r, eval=F}
+listOfRdas <- list_files_with_exts(workingPath,"RDA")
+
+listOfRdas %>% basename %>%
+  str_replace("\\.(RDA)","") ->shortNameRdas
+
+dataSubmitToProcess %>%
+  mutate(
+    canProduceRda=(shortNames %in% shortNameRdas)
+  ) -> dataSubmitToProcess
+
+# 取出學生id name
+map_dfc(chunkSheet,function(x){
+  x[c("id","name")] %>% as.character %>% unlist
+  }
+  ) -> idNameList
+idNameDf <- data.frame(
+  shortNames=names(idNameList),
+  id=(idNameList[1,] %>% unlist),
+  name=(idNameList[2,] %>% unlist),
+  stringsAsFactors = F
+)
+
+dataSubmitToProcess %>%
+  left_join(
+    idNameDf,
+    by="shortNames"
+  ) -> dataSubmitToProcess2
+  
+params$gsHWExams %>% gs_key -> gsHWExams
+if((params$hwcode %in% gsHWExams$ws$ws_title)){
+  gs_ws_delete(gsHWExams,ws=params$hwcode)
+  params$gsHWExams %>% gs_key -> gsHWExams
+} 
+
+gs_ws_new(gsHWExams,
+            ws=params$hwcode)
+
+params$gsHWExams %>% gs_key -> gsHWExams
+
+dataSubmitToProcess2 %>%
+  gs_edit_cells(gsHWExams,ws=params$hwcode,
+                input=.,anchor = "A1")
+```
+
+# Remove 女性.2018.10.25T16.07.10Z
+
+```{r, eval=FALSE}
+for(file in listOfRMDs){
+  #file<-"/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science//Midterm/ans/MIDTERM-410773072.RMD"
+  readLines(file)-> originLines
+  originLines %>%
+  str_replace("(\\.2018\\.10\\.25T16\\.07\\.10Z)","")->
+    originLines
+  writeLines(originLines,file)
+}
+```
+
+
+## functions
+
+```{r function environment, eval=F}
+fileListPurl <- function(ix,listOfRMDs){
+  #ix<-1
+  tryCatch({
+    knitr::purl(listOfRMDs[ix],output=str_replace(listOfRMDs[ix],"RMD","R"))
+  },
+    error=function(e){
+      print(paste0(listOfRMDs[ix]," has problems."))
+    }
+  )
+}
 chunkExtraction<-function(listOfRfiles){
   # i<-1
   # Rfile<-ansR
@@ -152,7 +234,7 @@ chunkExtraction<-function(listOfRfiles){
     eval(parse(text=NameIDparams))
     # 存在最終output, sheet中
     basename(Rfile) %>% 
-      str_replace(".R","") -> fileShortName #取出檔案名，無副檔名
+      str_replace("\\.R","") -> fileShortName #取出檔案名，無副檔名
     paste0("sheet$`",fileShortName,"`<-info") -> sheetInfoText
     eval(parse(text=sheetInfoText))
     
@@ -197,58 +279,74 @@ chunkExtraction<-function(listOfRfiles){
   # 讀入 R檔
 return(sheet)
 }
-```
-
-# 所有R檔存在sheet list
-```{r}
-list_files_with_exts(workingPath,"Rda")-> listOfRdas
-chunkSheetRda<- paste0(workingPath,"/chunkSheet.Rda")
-
-listOfRs %>% chunkExtraction -> chunkSheet
-
-# 移除舊的ans sheet
-ansR-> Rfile
-## 產生資料檔
-## 產生catchList用來對答案
-Rfile %>% basename %>%
-  str_replace(".R","") %>%
-  {which((names(chunkSheet)==.))}-> ansSheetLoc
-if(length(ansSheetLoc)>1){
-  sheetToRemove <- ansSheetLoc[-length(ansSheetLoc)] # 需去除的sheet位置
-  chunkSheet[[sheetToRemove]] <- NULL
-}
-
-
-save(chunkSheet,file=paste0(workingPath,"/chunkSheet.Rda"))
-```
-
-# 執行個別chunks
-
-```{r}
-# 執行Ans chunks
-Rfile %>% basename %>%
-  str_replace(".R","") %>%
-  {which((names(chunkSheet)==.))} %>% # ans sheet位置
-  {chunkSheet[[.]]} -> targetSheet # 找出chunkSheet中屬於Rfile的那張sheet
+markOff <- function(listOfRsNoAns,params,ansSheet,dataEnv){
+  ## 去除資料檔呼叫行
+  markOffItems<-c()
+  if(length(params$markOffItems)>0){
+    markOffItems<- params$markOffItems
+  }
   
-targetSheet$ansChunks-> ansChunk
-
-ansChunk %>% names %>% str_which("data") -> dataChunksLineNum
-ansChunk[dataChunksLineNum] %>% unlist -> dataProcedures
-pander::evals(dataProcedures) -> eval1
-dataEnv=env()
-setwdWorkingPath<-paste0("setwd('",workingPath,"')")
-eval(parse(text=setwdWorkingPath),envir=dataEnv)
-map_chr(eval1,function(x) x$src) %>%
-  paste0(collapse=";") %>%
-  {eval(parse(text=.),envir=dataEnv)}
-```
-
-
-# 產生catchList用來對答案
-
-## catchListFun
-```{r, warning=FALSE}
+  # # 找出ansR data chunk特色
+  # names(chunkSheet) %>% str_subset("(-ANS)") %>%
+  #   paste0('chunkSheet$`',.,"`->ansSheet") -> toEval
+  # eval(parse(text=toEval))
+  
+  ## 找出ansR 所用之dataset名稱
+  ansSheet$ansChunks %>% names() %>% 
+    str_which("data") %>% ansSheet$ansChunks[.] %>%
+    unlist -> dataChunks
+  #ansR %>% basename %>% str_replace("\\.R","\\.RDA")->ansRda
+  dataEnv %>% names -> dataNames
+  
+  #決定要markoff的data line pattern
+  dataNames %>% 
+    sapply(., function(x) str_which(dataChunks,paste0("(",x,")"))[1]) ->
+    dataChunkLoc
+  #dataChunks %>% str_which(dataNames) -> dataChunkLoc
+  dataChunkLoc  %>%
+    dataChunks[.] %>% 
+    str_locate("\\(") %>%
+    {.[,1]} -> endingSub
+  sapply(1:length(endingSub),function(x){
+    #x<-1
+    .x<-dataChunks[dataChunkLoc[x]]
+    .end<-endingSub[x]
+    str_sub(.x,1,.end-1)
+  }) -> dataMarkOffKeyWords
+  
+  # 要加#號的關鍵物件名稱
+  objectsOut<-c(dataMarkOffKeyWords,markOffItems)
+  
+  markoutDatasetStatus<-vector("logical",length(listOfRsNoAns))
+  for(i in 1:length(listOfRsNoAns)){
+    #i<-1
+    originContent <- readLines(listOfRsNoAns[i])
+    
+    tryCatch({
+        lapply(objectsOut,
+           function(x) {
+             #objectsOut[4]->x
+             loc<-str_which(originContent,x)
+             min(loc)
+           })->dataLines
+        dataLines<-unlist(dataLines)
+        
+        originContent[dataLines]<-
+          str_c("# ",originContent[dataLines])
+        
+        markoutDatasetStatus[i]<-T
+    },
+    error=function(e){
+      markoutDatasetStatus[i]<-F
+    },
+    warning=function(w){
+      markoutDatasetStatus[i]<-F
+    })
+    
+    writeLines(originContent,
+             con=listOfRsNoAns[i])
+  } 
+}
 catchListFun <- function(listOfRs,chunkSheet,workingPath,dataEnv=NULL){
 
   #Rfile<-ansR
@@ -256,7 +354,7 @@ catchListFun <- function(listOfRs,chunkSheet,workingPath,dataEnv=NULL){
   #Rfile <- ansR
   for(Rfile in listOfRs){
     Rfile %>% basename %>%
-        str_replace(".R","") %>%
+        str_replace("\\.R","") %>%
         {chunkSheet[[which(names(chunkSheet)==.)]]} ->
       targetSheet # 找出chunkSheet中屬於Rfile的那張sheet
     
@@ -300,92 +398,44 @@ catchListFun <- function(listOfRs,chunkSheet,workingPath,dataEnv=NULL){
       eval(parse(text=toBeEvaluated))
   }
 
-  RdaName <- Rfile %>% str_replace("\\.R","\\.Rda")
+  RdaName <- Rfile %>% str_replace("\\.R","\\.RDA")
   # 各別檔案catchList用自己檔名存成Rda
   save(dataEnv,catchList,file=RdaName)
+  print(RdaName)
   }
 }
-```
-
-
-# 產生答案catchList
-```{r}
-catchListFun(ansR,chunkSheet,workingPath,dataEnv=dataEnv)
-```
-
-## 去除資料檔呼叫行
-
-```{r}
-markOffItems<-c()
-if(length(params$markOffItems)>0){
-  markOffItems<- params$markOffItems
-}
-
-listOfRsNoAns<-setdiff(listOfRs,ansR)
-
-# 找出ansR data chunk特色
-load(paste0(workingPath,"/chunkSheet.Rda"))
-basename(ansR) %>% str_replace(".R","") %>%
-  paste0('chunkSheet$`',.,"`->ansSheet") -> toEval
-eval(parse(text=toEval))
-
-ansSheet$ansChunks %>% names() %>% 
-  str_which("data") %>% ansSheet$ansChunks[.] %>%
-  unlist -> dataChunks
-ansR %>% basename %>% str_replace(".R",".Rda")->ansRda
-load(paste0(workingPath,"/",ansRda))
-dataEnv %>% names -> dataNames
-
-dataChunks %>% str_which(dataNames) -> dataChunkLoc
-dataChunkLoc  %>%
-  dataChunks[.] %>% 
-  str_locate("\\(") %>%
-  {.[,1]} -> endingSub
-sapply(1:length(endingSub),function(x){
-  #x<-1
-  .x<-dataChunks[dataChunkLoc[x]]
-  .end<-endingSub[x]
-  str_sub(.x,1,.end-1)
-}) -> dataMarkOffKeyWords
- 
-
-# 要加#號的關鍵物件名稱
-objectsOut<-c(dataMarkOffKeyWords,markOffItems)
-
-markoutDatasetStatus<-vector("logical",length(listOfRsNoAns))
-for(i in 1:length(listOfRsNoAns)){
-  #i<-1
-  originContent <- readLines(listOfRsNoAns[i])
-  tryCatch({
-      lapply(objectsOut,
-         function(x) {
-           #objectsOut[4]->x
-           loc<-str_which(originContent,x)
-           min(loc)
-         })->dataLines
-      dataLines<-unlist(dataLines)
-      
-      originContent[dataLines]<-
-        str_c("# ",originContent[dataLines])
-      
-      markoutDatasetStatus[i]<-T
-  },
-  error=function(e){
-    markoutDatasetStatus[i]<-F
-  },
-  warning=function(w){
-    markoutDatasetStatus[i]<-F
-  })
+codeChunkName <- function(codeNameLine){
+  #ansR %>% readLines -> codeNameLine
   
-  writeLines(originContent,
-           con=listOfRsNoAns[i])
+  # 取出有名chunk的line numbers
+  codeNameLine %>% str_which("## ----") ->
+    namedChunkLineNumbers
+  # 將#,-與空白格去除
+  codeNameLine[namedChunkLineNumbers] %>% 
+    str_replace_all("#|-|\\s","") -> nameFinal
+
+  results<-list(chunkNames=nameFinal,
+                chunkLineNumbers=namedChunkLineNumbers)
+  return(results)
 }
-```
+dataEnvNew<-function(ansSheet,workingPath){
+  ansSheet$ansChunks-> ansChunk
+  ansChunk %>% names %>% str_which("data") -> dataChunksLineNum
+  ansChunk[dataChunksLineNum] %>% unlist -> dataProcedures
+  pander::evals(dataProcedures) -> eval1
+  dataEnv=env()
+  #setwdWorkingPath<-paste0("setwd('",workingPath,"')")
+  #eval(parse(text=setwdWorkingPath),envir=dataEnv)
+  map_chr(eval1,function(x) x$src) %>%
+    paste0(collapse=";") %>%
+    {eval(parse(text=.),envir=dataEnv)}
+  dir.create(file.path(workingPath,"info"))
+  save(dataEnv,file=file.path(workingPath,"dataEnv.Rda"))
+  print(file.path(workingPath,"dataEnv.Rda"))
+}
 
-## 執行學生R
-
-```{r}
-catchListFun(listOfRsNoAns,chunkSheet,workingPath,dataEnv=dataEnv)
-
+# 找出所有function class object names
+Filter(function(x) inherits(get(x), "function"), ls()) -> functionList
+save(list=functionList,file="StepY_funs.Rda")
 ```
 

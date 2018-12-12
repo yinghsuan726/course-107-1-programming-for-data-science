@@ -1,0 +1,78 @@
+---
+title: "Grading with flexible methods"
+author: "林茂廷"
+output: html_document
+params:
+  filepath: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/Midterm/ans/MIDTERM-410773096.RDA"
+  stepYfuns: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/StepY_funs.Rda"
+  ansFilePath: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/Midterm/ans/MIDTERM-ANS.RDA"
+  assistDir: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/Midterm/ans/assist"
+  dataFiles: ["CLASSSURVEY.CSV","HWGRADES.CSV","HWSUBMIT.CSV"]
+  chunkSheetFile: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science/Midterm/ans/INFO/CHUNKSHEET.RDA"
+  gsURL: "https://docs.google.com/spreadsheets/d/16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA/edit#gid=1536232356"
+  wsName: "MIDTERM"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_knit$set(root.dir = params$baseDir)
+```
+
+
+```{r}
+library(tools)
+library(purrr)
+library(stringr)
+library(dplyr)
+library(knitr)
+library(googlesheets)
+library(readr)
+load(params$stepYfuns)
+```
+
+
+## Step 1: 批改Rda
+
+```{r}
+gradeRDA(params$filepath,params$ansFilePath)-> results
+```
+
+## Step 2: 計算成績
+
+```{r}
+results %>% 
+  select(contains("ans")) %>%
+  {rowSums(.,na.rm=T)}*5.5 -> results$成績
+```
+
+## Step 3: 更新線上成績 及 記錄新檔名
+```{r}
+#gs_auth()
+gs_key("16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA") -> gsKey
+gsKey %>% gs_read(ws="Midterm") -> dataSubmit
+
+workingPath<-dirname(params$filepath)
+results$新檔名 <- paste0(params$wsName,"_",nrow(dataSubmit)+1,".RMD") 
+
+results$新檔名 %>%
+  {file.path(workingPath,"AFTER_GRADING",.)} %>%
+file.copy(file.path(workingPath,paste0(results$原始檔案,".RMD")),.,overwrite = T)
+
+(dataSubmit$學號==results$學號) %>%
+  {dataSubmit[!.,]} -> dataSubmit
+
+dataSubmit %>%
+  bind_rows(results) -> dataSubmit
+```
+
+# 檔名以排名變更
+
+```{r}
+gsKey$ws$ws_title %>% grep(params$wsName,.,ignore.case = T) %>%
+  gsKey$ws$ws_title[.] %>%
+  gs_edit_cells(gsKey,ws=.,
+                input=dataSubmit,
+                anchor="A1")
+
+```
+

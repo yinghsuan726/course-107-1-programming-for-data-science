@@ -40,8 +40,12 @@ list.files(workingPath) %>% # 檔名全大寫
   )} 
 
 listOfRMDs <- list_files_with_exts(workingPath,"RMD") 
+# exclude ORIGIN
+listOfRMDs %>%  str_detect("(-ORIGIN)") %>%
+  {listOfRMDs[!(.)]} -> listOfRMDs
+  
 # choose corrected
-listOfcRMDS <- listOfRMDs %>% str_subset("(-C\\.RMD)")
+#listOfRMDs <- listOfRMDs %>% str_subset("(-C\\.RMD)")
 
 ```
 
@@ -49,21 +53,21 @@ listOfcRMDS <- listOfRMDs %>% str_subset("(-C\\.RMD)")
 #file.remove(listOfRs)
 listOfRs <- file.path(
   workingPath,
-  {basename(listOfcRMDS) %>%
+  {basename(listOfRMDs) %>%
       str_replace("(RMD)","R")}
 )
-#purrr::map(1:length(listOfcRMDS),knitr::purl) -> purlInfo
 
+#purrr::map(1:length(listOfRMDs),knitr::purl) -> purlInfo
 
-for(i in seq_along(listOfcRMDS)){
- knitr::purl(listOfcRMDS[i],output=listOfRs[i]) 
+for(i in seq_along(listOfRMDs)){
+ knitr::purl(listOfRMDs[i],output=listOfRs[i]) 
 }
 
 
 dataSubmitToProcess <- data.frame(
-  listOfcRMDS=listOfcRMDS,
+  listOfRMDs=listOfRMDs,
   canProduceR=T,
-  shortNames=(listOfcRMDS %>% basename %>%
+  shortNames=(listOfRMDs %>% basename %>%
                 str_replace("\\.(RMD)",""))
 )
 ```
@@ -71,12 +75,12 @@ dataSubmitToProcess <- data.frame(
 
 ```{r}
 ## markoff Data lines
-studentRs<-listOfRs
-listOfRsNoAns<-listOfRs
+#studentRs<-listOfRs
+#listOfRsNoAns<-listOfRs
 load(paste0(dirname(workingPath),"/CHUNKSHEET.RDA"))->chunkSheetFile
 load(file.path(dirname(workingPath),"MIDTERM-ANS.RDA"))->ansRdaFile
 
-markOff(listOfRsNoAns,params,chunkSheetFile,ansRdaFile)
+markOff(listOfRs,params,chunkSheetFile)
 ```
 
 ## 執行學生R

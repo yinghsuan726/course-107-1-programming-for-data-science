@@ -1,0 +1,183 @@
+---
+title: "錯誤統計"
+author: "林茂廷"
+date: "11/6/2018"
+output: html_document
+params: 
+  homeworks: [Exercise4] #[hw1,hw2,Exercise3]
+  gskey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
+  gsAllInfo: "1E1P2na_-iRzczWxRVa09ldjE9NMidJOX0RGw9muhZfw"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(googlesheets)
+library(lubridate)
+library(stringr)
+```
+
+# 統計答對率
+
+```{r}
+load("summaryEnv.Rda")
+attach(summaryEnv)
+summaryEnv$accuracyfun(params$homeworks[3])
+summaryEnv$gradeRegistry(params$homeworks[3])
+```
+
+# 更新總表單
+
+```{r, eval=FALSE}
+gsAllInfo <- gs_key(params$gsAllInfo)
+if(!("作業成績" %in% gsAllInfo$ws$ws_title)){
+  gs_ws_new(gsAllInfo,ws="作業成績")
+  gsAllInfo <- gs_key(params$gsAllInfo)
+}
+gsHW <- gs_key(params$gskey)
+gradeWS <- gs_read(gsHW,ws="Sheet1")
+gradeWS %>% gs_edit_cells(
+  gsAllInfo,ws="作業成績",
+  input = .,
+  anchor = "A1"
+)
+```
+
+
+# Summary environment創造
+## 找出目標作業批改結果
+```{r, eval=FALSE}
+gsHW <- gs_key(params$gskey)
+targetHW<-params$homeworks[1]
+gsAllInfo <- gs_key(params$gsAllInfo)
+allInfoWS <- gs_read(gsAllInfo,ws="全班資訊")
+# 正確率統計函數
+accuracyfun<-function(targetHW){
+  
+    gsHW$ws$ws_title %>% #選出所有, say Exercise3
+      str_subset(targetHW) %>% #排序
+      sort(decreasing=TRUE) %>% #選最大
+      {.[1]} ->
+      targetWS
+    
+    dataWS0 <-gs_read(gsHW,ws=targetWS)   
+    
+    # 只取"成績"欄之前
+    dataWS0 %>% colnames %>% #找出成績的欄位
+      str_which("成績") %>% #找出 英文 欄位 + 2 欄
+      {dataWS0[1:.]} -> dataWS0
+
+    
+    # 算對n題的人，每題答對率
+    ansNames<-
+      colnames(dataWS0) %>% #找出有ans的
+      str_subset("ans")
+    maxNum<-length(ansNames)  
+    
+    dataWS0 %>% #選出答題欄
+      select(ansNames) %>% #計算每人的答對題數
+      mutate(答對數=rowSums(.,na.rm=T)) ->
+      dataWS
+    
+    accuracyMatrix<-matrix(0,maxNum,maxNum)
+    colnames(accuracyMatrix)<-ansNames
+    priorityList<-c()
+    leftAnsNames<-ansNames
+    for(correctNum in seq(maxNum,1,by=-1)){
+      #correctNum<-maxNum-1
+      dataWS %>% 
+        filter(答對數==correctNum) %>% 
+        select(ansNames) %>%
+        summarise_all(funs(mean(.,na.rm=T)))  %>%
+        as.numeric ->
+          accuracyMatrix[correctNum,]  
+      if(correctNum != maxNum){
+        if(length(leftAnsNames)!=0){
+          lowestAcc <-
+            which.min(accuracyMatrix[correctNum,leftAnsNames])
+          priorityList<- c(priorityList, leftAnsNames[lowestAcc])
+          leftAnsNames<-setdiff(leftAnsNames,priorityList)
+        }
+      }
+      # 選出答對率最低的
+    }
+    accuracyMatrix %>% na.omit -> accuracyMatrix
+    maxNum <- nrow(accuracyMatrix)
+    accuracyMatrix<-cbind(1:maxNum,accuracyMatrix)
+    colnames(accuracyMatrix)<-c("正確數",ansNames)
+    ## ERROR: check priorityList problem
+    if(length(priorityList)<maxNum){
+      empty<-rep("",maxNum-length(priorityList))
+      priorityList<-c(priorityList,empty)
+    }
+    
+    accuracyMatrix <- rbind(
+      accuracyMatrix,
+      c("優先順序：", priorityList)
+    )
+    # 更新在 WS 旁
+    dataWS0 %>% colnames %>% #找出成績的欄位
+      str_which("成績") %>% #找出 英文 欄位 + 2 欄
+      {LETTERS[.+2]} -> postingCol
+    
+    accuracyMatrix %>% 
+      gs_edit_cells(gsHW,ws=targetWS,
+                    input=.,
+                    anchor=paste0(postingCol,"1"))
+}
+
+gradeRegistry<-function(targetHW){
+    gsHW$ws$ws_title %>% #選出所有, say Exercise3
+    str_subset(targetHW) %>% #排序
+    sort(decreasing=TRUE) %>% #選最大
+    {.[1]} ->
+    targetWS
+    
+    dataWS0 <-gs_read(gsHW,ws=targetWS)   
+    
+    # 只取"成績"欄之前
+    dataWS0 %>% #找出成績的欄位
+      select(學號,成績) -> hwGrade
+    
+    # 更登記在sheet1
+    gs_read(gsHW,ws="Sheet1") -> sheet1WS
+    if(!("RepoURL" %in% colnames(sheet1WS))){
+      # 準備作業成績WS
+      allInfoWS %>%
+        select(姓名,學號,信箱,RepoURL) %>%
+        gs_edit_cells(gsHW,ws="Sheet1",
+                      input=.,
+                      anchor="A1")
+      gsHW<-gs_key(params$gskey)
+      gs_read(gsHW,ws="Sheet1") -> sheet1WS
+    }
+    colnames(hwGrade)[2] <- targetHW
+    
+    # 若已有登記，則移除該欄
+    if(
+      colnames(sheet1WS) %>% 
+      str_detect(targetHW) %>% 
+      any){
+      sheet1WS %>% select(-targetHW) -> sheet1WS
+    }
+    
+    # 登記成績
+    sheet1WS %>% 
+      left_join(hwGrade,by="學號") -> sheet1WS
+
+    # 更新表單
+    sheet1WS %>% gs_edit_cells(
+      gsHW,ws="Sheet1",
+      input=.,
+      anchor="A1"
+    )
+  
+}
+
+library(rlang)
+summaryEnv<-env()
+summaryEnv$gsHW <- gsHW
+summaryEnv$accuracyfun <- accuracyfun
+summaryEnv$gradeRegistry <- gradeRegistry
+save(summaryEnv,file = "summaryEnv.Rda")
+```

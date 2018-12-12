@@ -1,0 +1,213 @@
+---
+title: "學生考卷網頁製作"
+author: "林茂廷"
+date: "11/17/2018"
+output: html_document
+params:
+  baseDir: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science"
+  examChunkSheetDir: "Midterm/ans"
+  examEmptyRmd: "midterm.Rmd"
+  gsKey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
+  wsName: "Midterm"
+  githubDir: "/Users/martin/Desktop/GitHub/course-programming-for-data-science-exam-results/107_1"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(httr)
+library(googlesheets)
+library(stringr)
+library(purrr)
+```
+
+## Publish
+Not necessary if using Github.
+```{r, eval=F}
+indexFilePath<-file.path(params$baseDir,"index.Rmd")
+file.copy(indexFilePath,shaPath,overwrite = T)
+file.create(file.path(shaPath,"_site.yml"))
+
+## Publish to site
+#rmarkdown::render_site(shaPath)
+```
+
+```{r, eval=F}
+## 更新Sha html對照表 
+fileMapping <- data.frame(
+  RmdName=listOfBasenames,
+  ShaName=listOfShaHtmls,
+  URL=paste0("https://tpemartin.github.io/course-programming-for-data-science-exam-results/107_1/",listOfShaHtmls),
+  stringsAsFactors = F
+)
+params$gsKey %>% gs_key %>%
+  gs_ws_new(ws="Sha htmls",
+            input=fileMapping,
+            anchor="A1")
+```
+
+## 產生Bit.ly QR code
+
+```{r, eval=F}
+### 產生Bit.ly縮址
+library(httr)
+params$gsKey %>% gs_key -> fileMappingKey
+fileMappingKey %>%
+  gs_read(ws="Sha htmls")-> fileMapping
+bitlyRequest<-function(URL){
+  paste0("https://api-ssl.bitly.com/v3/shorten?format=txt&access_token=c159fa433761c3a0c5833c822b2c195a63274311&longUrl=",URLencode(URL))-> shortURL_i
+  GET(shortURL_i) -> Response_i
+  content(Response_i)
+}
+
+fileMapping %>% 
+  filter(
+    RmdName %>% {!str_detect(.,"(ANS)")}
+  ) -> fileMappingNoAns
+
+#fileMappingNoAns$URL[1] %>% bitlyRequest()
+
+fileMapping$URL %>%
+  map_chr(bitlyRequest) -> fileMapping$Bitly
+
+gs_ws_new(fileMappingKey,ws="Sha htmls")
+fileMappingKey <- params$gsKey %>% gs_key
+fileMapping %>% gs_edit_cells(fileMappingKey,ws="Sha htmls",
+                              input=.,anchor="A1")
+```
+
+### 產生QRcode
+
+```{r}
+library(qrcode)
+fileMappingKey <- params$gsKey %>% gs_key
+fileMappingKey %>% gs_read(ws='Sha htmls') -> fileMapping
+qrPath<-params$baseDir %>% file.path(params$examChunkSheetDir,"qrcode")
+# png(file=file.path(
+#   qrPath,
+#   paste0(fileMapping$RmdName[1],".png")
+#                    )
+#   )
+
+qrPath<-params$baseDir %>% file.path(params$examChunkSheetDir,"qrcode")
+qrPath %>%
+  dir.create(showWarnings = F)
+
+library(png)
+for(i in 1:nrow(fileMapping)){
+  i<-3
+    plot.new()
+  fileMapping$Bitly[i] %>% qrcode_gen(dataOutput = T) %>% 
+        writePNG(target=file.path(qrPath,paste0(fileMapping$RmdName[i],".png")),
+             dpi=300)
+  title("aaa")
+  par(mfrow=c(4, 3), mar=c(0, 0, 3, 0))
+  file.path(qrPath,paste0(fileMapping$RmdName[i],".png")) %>% readPNG() ->f
+  plot.new()
+  plot.window(xlim=c(0, 1), ylim=c(0, 1), asp=1)
+  rasterImage(f,0,0,1,1) 
+  title("test")
+  dev.off()
+}
+library(magick)
+listQR<-list.files(qrPath,full.names = T)
+for(i in listQR){
+  i<-file.path(qrPath,paste0(fileMapping$RmdName[i],".png"))
+  image_read(i) %>%
+    image_scale(200) %>%
+    image_write(i)
+}
+```
+
+
+```{r, results="hold"}
+ fileMapping$Bitly[i] %>% qrcode_gen(dataOutput = T) %>% 
+        writePNG(target=file.path(qrPath,paste0(fileMapping$RmdName[i],".png")),
+             dpi=300)
+
+library(magick)
+wColor = "White"; bColor = "black"
+readPNG(file.path(qrPath,paste0(fileMapping$RmdName[i],".png")),native=T) %>%
+  heatmap(dataMasked[nrow(dataMasked):1, ], Rowv = NA, 
+                Colv = NA, scale = "none", col = c(wColor, bColor), 
+                labRow = "", labCol = "",xlab="aa")
+  title("aa")
+```
+
+
+## Hypothes.is註記下載
+
+```{r, eval=FALSE}
+library(httr)
+GET("https://Hypothes.is/api/groups",
+    add_headers(
+      Authorization="Bearer 6879-wMD38qWJx9slxJ9WquoSemzwel0IT7AHxd2q4m3RPO8"
+    )) -> response
+response %>%
+  content -> allGroups
+allGroups %>% purrr::map(function(x) x$name)  
+
+allGroups[[28]] -> classGroup# 資料科學程式hypothes.is
+
+library(stringr)
+# view source in chrome then save it 
+"view-source_https___hypothes.is_groups_6WWd99PK_zi-liao-ke-xue-cheng-shi-she-ji-yi-107.html" %>%
+  readLines -> aa
+aa %>%
+  str_subset('(?<=(acct:))[[:graph:]]') %>% 
+  str_replace("                value=\"acct:","") %>%
+  str_replace('\"',"") %>%
+  .[-1] -> allMembers
+
+## Add members to new group
+i<-73
+urlPath<-paste0(
+  "https://hypothes.is/api/groups/o6wjyzRM/members/",
+  allMembers[i]
+)
+#https://hypothes.is/api/groups/{id}/members/{user}
+POST(urlPath,
+    add_headers(
+      Authorization="Bearer 6879-wMD38qWJx9slxJ9WquoSemzwel0IT7AHxd2q4m3RPO8"
+    ))
+```
+   
+### Search annotations belong to a group
+```{r} 
+GET('https://Hypothes.is/api/search',
+    add_headers(
+     Authorization="Bearer 6879-wMD38qWJx9slxJ9WquoSemzwel0IT7AHxd2q4m3RPO8"
+    ),
+    query=list(
+      group="o6wjyzRM"
+    ))  %>%
+  content -> response
+response$rows %>%
+purrr::map(function(x) c(x$updated, x$user)) -> userAnnotations
+
+i<-3
+x<-response$rows[[i]]
+x[c("updated","user","text")]
+x$target[[1]]$source
+x$target[[1]]$selector[[4]] %>% unlist
+```
+
+## 取出學生html ans chunk
+
+```{r, eval=F}
+library(rvest)
+shaPath <-
+  file.path(
+    params$baseDir,params$examChunkSheetDir,
+    "temp","shaHtml")
+listOfHtmls<-list.files(shaPath,"(html)",
+                        full.names = T)
+listOfHtmls[1] %>%
+  read_html() -> object_i
+object_i %>%
+  html_nodes(css=) %>%
+  html_text()
+
+#xpath ="//pre[@class='r ans1b1 klippy']/code[@class='hljs' and 1]"
+```
+

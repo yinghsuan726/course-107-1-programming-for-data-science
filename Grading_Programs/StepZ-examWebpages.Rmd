@@ -1,0 +1,564 @@
+---
+title: "學生考卷網頁製作"
+author: "林茂廷"
+date: "11/17/2018"
+output: html_document
+params:
+  baseDir: "/Users/martin/Desktop/GitHub/course-107-1-programming-for-data-science"
+  examChunkSheetDir: "Midterm/ans/info"
+  examEmptyRmd: "midterm.Rmd"
+  gsKey: "16XPjoHB_Pt7Vwby5QFwqFO2fW-rJahS4xyijiX2S8CA"
+  wsName: "Midterm"
+  githubDir: "/Users/martin/Desktop/GitHub/course-programming-for-data-science-exam-results/107_1"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+load("StepZ_funs.Rda")
+```
+
+## chunkSheet資料引入
+
+```{r}
+infoPath<- file.path(params$baseDir,params$examChunkSheetDir)
+workingPath <- dirname(infoPath)
+tempPath <- file.path(workingPath,"temp")
+if(!is.null(dir.exists(tempPath))) {
+  dir.create(tempPath)
+}
+# locate chunksheet.rda
+library(magrittr)
+library(dplyr)
+library(googlesheets)
+library(stringr)
+list.files(infoPath) %T>%  
+    {assign("workingPathListFiles",.,envir=globalenv())} %>%
+  toupper %>%
+  str_detect("CHUNKSHEET.RDA") %>%
+  workingPathListFiles[.] -> chunkSheetName
+chunkSheetFilePath <- file.path(infoPath,chunkSheetName)
+load(chunkSheetFilePath)
+```
+
+## 產生學生考卷網頁
+
+### 試題卷
+
+```{r}
+# 試題卷位置在working path上一層
+workingPath %>%
+  str_split("/") %>%
+  unlist %>%
+  {.[1:(length(.)-1)]} %>%
+  paste0(.,collapse = "/") ->
+  workingPathUpper
+
+# 查出試卷file path
+file.path(workingPathUpper,params$examEmptyRmd)->examEmptyFilePath
+
+# 
+readLines(examEmptyFilePath)->examEmptyLines
+```
+
+## 增加header設定
+
+```{r}
+examEmptyLines %>%
+  str_which("html_document") -> html_docment_index
+html_setting<-c(
+"  html_document:",
+"    includes:",
+"      in_header: header.html"
+)
+examEmptyLines %>%
+{  c(
+    .[1:(html_docment_index-1)],
+    html_setting,
+    .[(html_docment_index+1):length(.)]
+  )} -> 
+  examEmptyLines
+```
+
+#### 增加GA在header
+```{r}
+file.create(file.path(workingPathUpper,"header.html"))
+readLines(file.path(params$baseDir,"ga.txt")) %>%
+  writeLines(file.path(workingPathUpper,"header.html"))
+
+file.copy(file.path(workingPathUpper,"header.html"),
+          file.path(tempPath,"header.html"))
+```
+
+#### 更新setup chunk 
+
+```{r}
+examEmptyLines %>% chunkticksDF -> chunkTicks
+
+setupChunkNameContent<-"```{r setup, include=TRUE, echo=FALSE}"
+
+examEmptyLines[chunkTicks$start[1]]<- setupChunkNameContent
+
+# update setup chunk
+## newContent to add
+newContent <-
+  c("knitr::opts_chunk$set(echo = TRUE,message=FALSE,error=FALSE,eval=FALSE)",
+    "library(klippy)",
+    "klippy()")
+
+## add newContent
+examEmptyLines %>%
+  chunkcontent_replace("setup",newContent,chunkTicks) ->
+  examEmptyLines2
+
+## 插入navbar
+examEmptyLines2 %>% str_which("---") %>% .[2] -> frontMatterloc
+examEmptyLines2<- c(
+  examEmptyLines2[1:frontMatterloc],
+  readLines(file.path(tempPath,"includes","navbar.html")),
+  examEmptyLines2[(frontMatterloc+1):length(examEmptyLines2)]
+)
+
+examEmptyLines2 %>% writeLines(file.path(tempPath,params$examEmptyRmd))
+```
+
+
+### 答案卷
+
+```{r}
+#### 取出答案chunk sheet
+names(chunkSheet) -> sheetNames
+is.ans=T
+
+sheetNames %>% str_detect("(-ANS)") %>% 
+  sheetNames[.]->
+  ansSheet
+
+#### 由空白卷轉成有[參考答案...]按鈕的RmD
+examEmptyFilePath2 <- file.path(tempPath,params$examEmptyRmd)
+ansSheet %>% 
+  RmdAugment(examEmptyFilePath=examEmptyFilePath2,is.ans) ->
+  examEmptyLines3
+
+### 儲存答案檔Rmd
+
+ansFilePath<-file.path(tempPath,paste0(ansSheet,".Rmd"))
+writeLines(examEmptyLines3,ansFilePath)
+
+#### 轉成html template(set eval=F)
+rmarkdown::render(
+  ansFilePath,
+  output_format = "html_document",
+  ansFilePath %>% str_replace("(\\.Rmd)","\\.html"),
+  quiet=TRUE
+)
+```
+
+### 學生卷
+
+```{r}
+params$gsKey %>% gs_key %>%
+  gs_read(ws="Sha htmls") -> gsSheet
+gsSheet$ShaName
+```
+
+
+```{r}
+#### 取出答案chunk sheet
+names(chunkSheet) -> sheetNames
+is.ans=F
+
+#### 去除ANS sheet
+sheetNames %>% str_which("(-ANS)") %>% 
+  {sheetNames[-.]} ->
+  studentSheets
+
+#### 由空白卷轉成有[參考答案...]按鈕的RmD
+newStudentSheets<-studentSheets
+for(studentSheet_i in studentSheets){
+  #studentSheet_i <- studentSheets[1]
+  tryCatch({
+    studentSheet_i %>% 
+      RmdAugment(examEmptyFilePath=ansFilePath,is.ans) ->
+      examEmptyLines4
+    TRUE
+    #examEmptyLines4 #%>% View
+  },
+  error=function(e){
+    print(paste0(studentSheet_i," has errors."))
+    FALSE
+  },
+  warning=function(w){
+    print(paste0(studentSheet_i," has warnings."))
+    FALSE
+  }) -> tryCatchResult
+  if(tryCatchResult != FALSE){
+  studentSheet_i %>% 
+        RmdAugment(examEmptyFilePath=ansFilePath,is.ans) ->
+        examEmptyLines4
+      examEmptyLines4 #%>% View
+      
+      ### 更新navbar連結
+      which(gsSheet$RmdName==studentSheet_i) %>% {gsSheet$ShaName[.]} %>% 
+        str_replace(".html","-grades.html")->gradehtml
+
+      examEmptyLines4 %>%
+        str_replace_all(
+          c(
+            "act1"="active",
+            "act2"="",
+            "a.html"="#",
+            "b.html"=gradehtml
+          )
+        ) -> examEmptyLines4
+      ### 儲存答案檔Rmd
+      
+      studentSheetFilePath<-file.path(tempPath,paste0(studentSheet_i,".Rmd"))
+      writeLines(examEmptyLines4,studentSheetFilePath)
+  } else {
+    newStudentSheets <- setdiff(newStudentSheets,studentSheet_i)
+  }
+}
+```
+
+#### 製作學生對/錯 css head
+
+```{r}
+library(googlesheets)
+
+params$gsKey %>% gs_key %>%
+  gs_read(ws=params$wsName) -> examGrades
+
+for(studentSheet_i in newStudentSheets){
+  #studentSheet_i <- newStudentSheets[1]
+  examGrades %>% 
+    filter(
+      原始檔案==studentSheet_i
+    ) %>% 
+    select(contains("ans")) -> ansGrades_i
+  
+  # 選出正確題代號
+    ansGrades_i %>% 
+    {which(.==1)} %>%
+    {names(ansGrades_i)[.]} -> correctList
+  # 選出錯誤題代號
+    wrongList <- setdiff(names(ansGrades_i),correctList)
+  # 製作css
+    css_i<-
+      c(
+        "<style>",
+        paste0(paste0(".",c(correctList), collapse=", ")," {"),
+        "background-color: #dff0d8;",
+        "border-color: #d6e9c6;",
+        "}",
+        paste0(paste0(".",c(wrongList), collapse=", ")," {"),
+        "background-color: #f2dede;",
+        "border-color: #ebccd1;",
+        "}",
+        "</style>"
+      ) 
+    
+    # 增加css到Rmd最後
+    Rmdfile_i<-file.path(tempPath,paste0(studentSheet_i,".Rmd"))
+    readLines(Rmdfile_i)-> RmdLines
+    RmdLines<-c(RmdLines,
+                css_i) %>%
+    writeLines(Rmdfile_i)  
+}
+```
+
+
+#### 轉成html template(set eval=F)
+
+```{r}
+for(studentSheet_i in newStudentSheets){
+  studentSheet_i %>% 
+    paste0(".Rmd") %>%
+    file.path(tempPath,.) -> studentSheetFilePath
+  rmarkdown::render(
+    studentSheetFilePath,
+    output_format = "html_document",
+    studentSheetFilePath %>% str_replace("(\\.Rmd)","\\.html"),
+    quiet=TRUE)    
+}
+```
+
+## 成績網頁生成
+
+```{r}
+## 
+gradeTemplateFilePath<-file.path(tempPath,"GRADE-HTMLTEMPLATE.RMD")
+gradeTemplateFilePath %>% str_replace("(\\.RMD)","\\.html") -> gradeHtmlTemplate
+file.exists(gradeTemplateFilePath)
+rmarkdown::render(
+  gradeTemplateFilePath,
+    output_format = "html_document",
+    output_file=gradeHtmlTemplate,
+    quiet=TRUE)   
+
+
+gradeHtmlTemplate %>% readLines -> gradeLines
+basename(gradeTemplateFilePath) %>% str_replace("(.RMD)","_files") -> metafolder
+gradeLines %>% str_replace(metafolder,"assets") -> gradeLines
+
+file.path(workingPath,"TEMP","gradeSha")->gradeShaPath
+dir.create(gradeShaPath)
+for(studentSheet_i in newStudentSheets){
+  which(gsSheet$RmdName==studentSheet_i) %>% gsSheet[.,] -> info_i
+  shaShortName<-info_i$ShaName %>% str_replace(".html","")
+  
+  info_i$ShaName %>% {file.path(gradeShaPath,.)} %>% str_replace(".html","-grades.html") -> gradehtml_i
+  pngfile<-paste0("img/",shaShortName,".png")
+  gradeLines %>%
+    str_replace_all(
+      c(
+        "a.html"=info_i$ShaName,
+        "b.html"="#",
+        "(https://www.ntpu.edu.tw/chinese/images/home/link-19.png)"=pngfile
+      )
+    ) %>%
+    writeLines(gradehtml_i)
+  htmlfile <- file.path(workingPath,"TEMP",paste0(studentSheet_i,".html"))
+  metafolder <- paste0(studentSheet_i,"_files")
+  htmlfile %>% 
+    readLines %>%  #修正meta路徑
+    str_replace(metafolder,"assets") %>% 
+    writeLines(htmlfile)
+  
+}
+```
+
+
+## 產生亂碼檔名
+
+```{r}
+library(digest)
+listOfHtmls<- list.files(tempPath,"html")
+listOfBasenames<- listOfHtmls %>% basename %>%
+  str_replace("(\\.html)","")
+listOfBasenames %>% paste0("29423328") %>%
+  map(sha1) %>%
+  unlist %>%
+  paste0(".html")->listOfShaHtmls
+
+listOfBasenames %>% paste0("29423328") %>%
+  map(sha1) %>%
+  unlist %>%
+  paste0(".Rmd")->listOfShaRmds
+
+file.path(tempPath,"sha",listOfShaHtmls)-> toFilePath
+listOfBasenames %>%
+  paste0(".Rmd") %>%
+  file.path(tempPath,.)->fromFilePath
+listOfBasenames %>%
+  paste0(".Rmd") %>%
+  file.path(tempPath,"sha",.)->toFilePath
+dir.create(file.path(tempPath,"sha"), showWarnings = F)
+file.copy(from=fromFilePath,to=toFilePath,overwrite=T)  
+
+shaPath<-file.path(tempPath,"sha")
+listOfShaRmds %>%
+  file.path(shaPath,.) -> newName
+
+file.rename(toFilePath,newName)
+
+## Move temp htmls
+shaPath<-file.path(tempPath,"shaHtml")
+dir.create(shaPath)
+listOfHtmls %>% file.path(tempPath,.) %>%
+  { 
+    file.copy(.,to=shaPath)
+    file.remove(.)
+  }
+## Rename to Sha htmls
+listOfHtmls %>% file.path(shaPath,.) %>%
+  file.rename(.,to=file.path(shaPath,listOfShaHtmls))
+
+## copy to github
+file.copy(file.path(shaPath,listOfShaHtmls),
+          params$githubDir, overwrite = T)
+```
+
+## Publish
+Not necessary if using Github.
+```{r, eval=F}
+indexFilePath<-file.path(params$baseDir,"index.Rmd")
+file.copy(indexFilePath,shaPath,overwrite = T)
+file.create(file.path(shaPath,"_site.yml"))
+
+## Publish to site
+#rmarkdown::render_site(shaPath)
+```
+
+```{r}
+## 更新對照表
+fileMapping <- data.frame(
+  RmdName=listOfBasenames,
+  ShaName=listOfShaHtmls,
+  URL=paste0("https://tpemartin.github.io/course-programming-for-data-science-exam-results/107_1/",listOfShaHtmls),
+  stringsAsFactors = F
+)
+params$gsKey %>% gs_key %>%
+  gs_ws_new(ws="Sha htmls",
+            input=fileMapping,
+            anchor="A1")
+```
+
+## Bit.ly
+
+```{r, eval=F}
+library(httr)
+
+paste0("https://api-ssl.bitly.com/v3/shorten?format=txt&access_token=c159fa433761c3a0c5833c822b2c195a63274311&longUrl=",fileMapping$URL[2])-> shortURL_i
+
+GET(shortURL_i) -> Response_i
+.Last.value-> Response 
+bitly_i$request$url
+```
+
+## all functions
+
+```{r}
+chunkticksDF<-function(allLines){
+  allLines %>%
+  str_which("(```)") -> chunkTicksLoc
+chunkTicks <-
+  data.frame(
+    start=chunkTicksLoc[seq(1,length(chunkTicksLoc),by=2)],
+    end=chunkTicksLoc[seq(2,length(chunkTicksLoc),by=2)]
+  )
+chunkTicks %>%
+  mutate(
+    chunkName={ 
+      chunkname_extract(allLines,chunkTicks)
+      }
+  ) -> chunkTicks
+return(chunkTicks)
+}
+
+chunkname_extract<-function(allLines,chunkTicks){
+  allLines[chunkTicks$start] %>%
+    # r\\s or r preceeding [[:alnum:]]+ which is followed by \\} or ,
+    str_extract("(?<=(r\\s|r))[[:alnum:]]+(?=(\\}|,))") ->
+    chunkNames
+  return(chunkNames)
+}
+chunkcontent_replace<-function(textLines,chunkname,newContent,chunkTicks){
+chunkTicks %>%
+    filter(chunkName==chunkname) -> setupChunk
+    preText<-textLines[1:setupChunk$start]
+    postText<-textLines[setupChunk$end:length(textLines)]
+    c(
+      preText,
+      newContent,
+      postText
+    ) -> textLines  
+  return(textLines)
+}
+RmdAugment<- function(sheetName_i,examEmptyFilePath=examEmptyFilePath,is.ans){
+  chunkSheet[[sheetName_i]]->targetSheet
+  
+  readLines(examEmptyFilePath)->examEmptyLines
+  
+  examEmptyLines %>% chunkticksDF -> chunkTicks
+  
+  examEmptyLines[chunkTicks$start[1]]<- setupChunkNameContent
+  
+  # update setup chunk
+  ## newContent to add
+  newContent <-
+    c("knitr::opts_chunk$set(echo = TRUE,message=FALSE,error=FALSE,eval=FALSE)",
+      "library(klippy)",
+      "klippy()")
+  
+  ## add newContent
+  examEmptyLines %>%
+    chunkcontent_replace("setup",newContent,chunkTicks) ->
+    examEmptyLines2
+  
+  chunkTicks$chunkName %>% #View
+    str_subset("(ans[[:alnum:]]+)") -> allAnsChunkNames
+  
+  chunkTicks %>%
+    filter(chunkName %in% allAnsChunkNames) -> ansChunkTicks
+  
+  ## 以ans chunk name 新增class.source css name
+  for(i in 1:nrow(ansChunkTicks)){
+    examEmptyLines2[ansChunkTicks$start[i]] %>%
+      str_replace("\\}",
+                  paste0(', class.source="',
+                         ifelse(is.ans==T,
+                                "correctAns",
+                         ansChunkTicks$chunkName[i]),
+                         '"\\}')
+                  ) -> examEmptyLines2[ansChunkTicks$start[i]]
+  }
+  
+  ## 填入chunk內容
+  library(purrr)
+  for(chunkName_i in allAnsChunkNames){
+    #chunkName_i <- allAnsChunkNames[1]
+    examEmptyLines2 %>% #update chunkTicks dataframe
+      chunkticksDF -> chunkTicks
+    
+    newContent<-targetSheet$ansChunks[[chunkName_i]][-1] 
+    
+    examEmptyLines2 %>% # insert newContent
+      chunkcontent_replace(
+        chunkName_i,newContent,chunkTicks) -> 
+      examEmptyLines2
+  }
+  
+  if(is.ans==T){
+  ## 複製chunk 內容一次
+  examEmptyLines2 %>% chunkticksDF -> chunkTicks
+  
+  chunkTicks$chunkName %>% #View
+    str_subset("(ans[[:alnum:]]+)") -> allAnsChunkNames
+  
+  # 資料做 chunk cut
+  ansChunkTicks <-
+    chunkTicks %>% filter(chunkName %in% allAnsChunkNames)
+  allLinesNumberSeq <- 1:length(examEmptyLines2)
+  
+  # 算cutpoints
+  ansChunkTicks$startCut<-ansChunkTicks$start-1
+  ansChunkTicks$endCut<-ansChunkTicks$end
+  rbind(ansChunkTicks$startCut,ansChunkTicks$endCut) %>% 
+    c %>%
+    {c(0,.,length(examEmptyLines2)+1)} -> cutPoints
+  
+  # cut
+  
+  allLinesNumberSeq %>% cut(cutPoints) -> LineChunkCat
+  levels(LineChunkCat) %>%
+    {which((. %in% 
+            paste0("(",ansChunkTicks$startCut,",",ansChunkTicks$endCut,"]")))}-> levelsName
+  levels(LineChunkCat)[levelsName]<-ansChunkTicks$chunkName
+  
+  map(levels(LineChunkCat),function(x){
+    #x<-levels(LineChunkCat)[2]
+     chunkContent <- examEmptyLines2[which(LineChunkCat==x)]
+      if(x %in% allAnsChunkNames){
+         chunkL<-length(chunkContent)
+         chunkMiddle <- chunkContent[2:(chunkL-1)]
+         chunkNamePattern <- paste0("(",x,")")
+         chunkContent<-c(
+           paste0("```{r ",x,"}"),
+           "```",
+           paste0('<button data-toggle="collapse" data-target="#',x,'">參考答案...</button>'),
+           paste0('<div id="',x,'" class="collapse">'),
+           chunkContent %>% str_replace(chunkNamePattern,""),
+           "</div>")
+      }
+     return(chunkContent)
+     }
+     ) %>% unlist ->
+    examEmptyLines2  
+  }
+  return(examEmptyLines2)
+}
+# 找出所有function class object names
+Filter(function(x) inherits(get(x), "function"), ls()) -> functionList
+save(list=functionList,file="StepZ_funs.Rda")
+```
+
