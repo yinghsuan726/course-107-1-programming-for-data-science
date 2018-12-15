@@ -1,0 +1,124 @@
+---
+title: "Exercise 6"
+date: "12/15/2018"
+params:
+  id: "你的學號（留意要與studentID:間空一格）"
+  name: "你的名字（留意要與name:間空一格）"
+  repoURL: "這個作業的GitHub repo網址（選填）"
+---
+作業上傳截止日期：2018-12-23 00:00:00 Asia/Taipei Time (即台灣時間22號半夜12點，或23號凌晨0點)
+作業上傳網址：https://docs.google.com/forms/d/e/1FAIpQLScyV1OCzaeg-2CeSev6aibpTruGhQ2gg-NeWbCX2EQnK1DxxA/viewform?entry.1232937468=Exercise6
+
+存檔時，請用你的學號當延伸檔名。例如：若你的學號為41078392，則請`File->Save As...`存成Exercise6-41078392.Rmd。
+
+repoURL若有，老師要給你建議時會更容易，但不強迫。
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr); library(stringr); library(lubridate); library(purrr)
+```
+
+## 1. dplyr與期中考
+
+期中考的題目在dplyr的應用下會變得相當直覺、簡單。先執行以下程式引入學生的課外活動調查**classSurvey**及作業成績**hwGrades**資料：
+```{r data1}
+classSurvey <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/classSurvey.csv")
+hwGrades <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/hwGrades.csv")
+```
+
+## 1.1 mutate應用
+使用`mutate()`一口氣在classSurvey裡完成以下幾件事（結果記得存回classSurvey）： 
+
+  - 將classSurvey資料中的**性別**變數轉成factor class
+    
+  - 創造**入學年**變數（由**學號**的第2-4位字元產生）
+    
+  - 創造**團隊活動**Logic變數，TRUE表示有參與團隊活動，FALSE表示沒有（由**課外活動**變數產生）
+    
+```{r ans11}
+```
+
+
+## 1.2 group_by及summarise應用
+
+從**classSurvey**中(1)使用**性別**進行樣本分群，並(2)在每個性別樣本下，計算
+
+  - **人數**（hint: 除了課堂所學`nrow()`,`length()`等技巧，也可以直接寫`n()`，函裡頭不放東西則會回傳樣本的觀測值個數。）  
+  - **參加團隊活動人數**（hint: 前一題classSurvey已產生**團隊活動**這個logic variable，把所有TRUE加起來就是答案。）  
+  - **參加團隊活動比例**, 即**參加團隊活動人數**除以**人數**。   
+
+這裡步驟(1)使用group_by；步驟(2)使用summarise   
+  
+```{r ans12}
+```
+
+## 1.3 NA取代函數
+在hwGrades裡hw1，hw2，Exercise3均有不少NA，我們要把成績依下列狀況成立與否而給與不同的值：
+
+  - 若該值目前為NA，則值改成0；
+    
+  - 若該值目前不是NA，則維持原數值。
+    
+在R裡我們可以用`ifelse(邏輯條件, 為真時的回傳值, 為否的回傳值)`，例如以下的`is_hot()`函數，當輸入溫度大於30時會回"熱",反之回"宜人"：
+
+```{r}
+is_hot<- function(temperature){
+  ifelse(temperature>30, "熱", "宜人")
+}
+is_hot(28)
+is_hot(35)
+```
+
+創造一個函數叫`na2zero()`，當x為NA時`na2zero(x)=0`;而當x不為NA時，`na2zero(x)=x`，即
+```
+x<-NA
+na2zero(x)=0
+x<-3
+na2zero(x)=3
+```
+
+```{r ans13}
+```
+
+## 1.4 NA處理 
+例用na2zero函數，透過mutate將hwGrades三次作業NA成績均轉成0。(結果記得回存hwGrades) (對程式能力掌握好的同學我建議試著用`mutate_if()`來對所有numeric class變數(三次作業成績都是這個class)進行na2zero轉換。)
+
+```{r ans14}
+```
+
+## 1.5 資料整併
+classSurvey與hwGrades都存在對方所沒有的變數，共通點是他們都有**學號**。我們可透過**學號**將兩個資料併在一起，使用`dplyr::left_join()`。
+
+以下說明取自`?left_join` ：有兩個data frames, 它們的共同變數為**name**
+```{r}
+band_members
+```
+
+```{r}
+band_instruments
+```
+
+`left_join()`在`%>%`使用時會以`%>%`「左手邊」的data frame為主把右手邊多的資訊併進來。nrow會維持「左手邊」data frame nrow，合併只會增加新的變數資訊。
+
+```{r}
+band_members %>% 
+  left_join(band_instruments,by=c("name"))
+```
+
+請以hwGrades為「左手邊」data frame把classSurvey的資訊合併進來。（結果請回存hwGrades）
+
+```{r ans15}
+```
+
+## 1.6 個人作業平均成績
+使用整併完的hwGrades透過`group_by()`及`mutate()`來計算每個人的**作業平均成績**。（結果請回存hwGrades）
+
+```{r ans16}
+```
+
+## 1.7 性別與學業表現：男性
+延續上題的hwGrades，請使用`group_by()`及`summarise()`來計算男/女性的**平均作業平均成績**。(結果還會出現性別NA組的平均)
+
+```{r ans17}
+```
+
