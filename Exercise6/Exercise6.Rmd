@@ -22,6 +22,7 @@ library(dplyr); library(stringr); library(lubridate); library(purrr)
 
 期中考的題目在dplyr的應用下會變得相當直覺、簡單。先執行以下程式引入學生的課外活動調查**classSurvey**及作業成績**hwGrades**資料：
 ```{r data1}
+library(readr)
 classSurvey <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/classSurvey.csv")
 hwGrades <- read_csv("https://raw.githubusercontent.com/tpemartin/github-data/master/hwGrades.csv")
 ```
@@ -111,7 +112,7 @@ band_members %>%
 ```
 
 ## 1.6 個人作業平均成績
-使用整併完的hwGrades透過`group_by()`及`mutate()`來計算每個人的**作業平均成績**。（結果請回存hwGrades）
+使用整併完的hwGrades透過`mutate()`來計算每個人的**作業平均成績**。（結果請回存hwGrades）
 
 ```{r ans16}
 ```
